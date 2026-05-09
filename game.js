@@ -255,52 +255,104 @@
     c.restore();
   }
 
-  function paintFarMountains(c, W, H, top = '#7e9bb8', shadow = '#5e7a96') {
-    const baseY = H * 0.5;
+  function paintFarMountains(c, W, H, top = '#88a4be', shadow = '#5e7a96') {
+    // Two layers: a paler "back ridge" then the main range, for atmospheric depth.
+    paintMountainRidge(c, W, H, {
+      baseY: H * 0.46,
+      heightMin: 80,
+      heightVar: 70,
+      width: 260,
+      seed: 19,
+      fill: '#a3bcd2',
+      shadow: '#7c97b0',
+      snowAlpha: 0.55,
+    });
+    paintMountainRidge(c, W, H, {
+      baseY: H * 0.5,
+      heightMin: 130,
+      heightVar: 120,
+      width: 200,
+      seed: 7,
+      fill: top,
+      shadow,
+      snowAlpha: 0.92,
+    });
+  }
+
+  function paintMountainRidge(c, W, H, opts) {
+    const seed = mulberry32(opts.seed);
     const peaks = [];
-    const seed = mulberry32(7);
-    let x = -40;
-    while (x < W + 80) {
-      const peakX = x + 80 + seed() * 80;
-      const peakY = baseY - (110 + seed() * 110);
-      peaks.push([peakX, peakY]);
-      x = peakX + 40;
+    let x = -opts.width * 0.6;
+    while (x < W + opts.width) {
+      const peakX = x + opts.width * (0.4 + seed() * 0.4);
+      const peakY = opts.baseY - (opts.heightMin + seed() * opts.heightVar);
+      const skew = (seed() - 0.5) * 0.4;  // tilt the peak left or right
+      peaks.push({ x: peakX, y: peakY, skew });
+      x = peakX + opts.width * 0.3;
     }
-    // body
-    c.fillStyle = top;
+
+    // Body — curved silhouette using bezier between peaks
+    c.fillStyle = opts.fill;
     c.beginPath();
-    c.moveTo(-20, baseY);
-    for (const p of peaks) {
-      c.lineTo(p[0] - 50, baseY - 10);
-      c.lineTo(p[0], p[1]);
-    }
-    c.lineTo(W + 20, baseY);
-    c.closePath();
-    c.fill();
-    // shadow side
-    c.fillStyle = shadow;
-    c.beginPath();
+    c.moveTo(-20, opts.baseY);
     for (let i = 0; i < peaks.length; i++) {
       const p = peaks[i];
-      c.moveTo(p[0], p[1]);
-      c.lineTo(p[0] + 28, p[1] + 38);
-      c.lineTo(p[0] + 60, baseY);
-      c.lineTo(p[0], baseY);
-      c.closePath();
+      const prevX = i === 0 ? -20 : (peaks[i-1].x + (p.x - peaks[i-1].x) * 0.55);
+      const prevY = i === 0 ? opts.baseY : (peaks[i-1].y + (opts.baseY - peaks[i-1].y) * 0.45);
+      // gentle saddle between peaks
+      c.quadraticCurveTo(prevX, prevY + 4, p.x - opts.width * 0.18, p.y + (p.y - opts.baseY) * -0.05);
+      // sharp-ish ridge to peak
+      c.lineTo(p.x + p.skew * 20, p.y);
+      c.lineTo(p.x + 8, p.y + 6);
     }
+    c.lineTo(W + 20, opts.baseY);
+    c.closePath();
     c.fill();
-    // snow caps
-    c.fillStyle = 'rgba(255,255,255,0.92)';
+
+    // Shadow side (right of each peak)
+    c.fillStyle = opts.shadow;
+    c.globalAlpha = 0.85;
     for (const p of peaks) {
       c.beginPath();
-      c.moveTo(p[0], p[1]);
-      c.lineTo(p[0] - 18, p[1] + 22);
-      c.lineTo(p[0] - 8, p[1] + 18);
-      c.lineTo(p[0] + 4, p[1] + 26);
-      c.lineTo(p[0] + 16, p[1] + 18);
-      c.lineTo(p[0] + 24, p[1] + 28);
+      c.moveTo(p.x + p.skew * 20, p.y);
+      c.lineTo(p.x + 8, p.y + 8);
+      c.bezierCurveTo(p.x + 30, p.y + 50, p.x + 60, p.y + 90, p.x + 80, opts.baseY);
+      c.lineTo(p.x, opts.baseY);
       c.closePath();
       c.fill();
+    }
+    c.globalAlpha = 1;
+
+    // Snow caps — multiple irregular patches per peak
+    c.fillStyle = `rgba(255,255,255,${opts.snowAlpha})`;
+    for (const p of peaks) {
+      const px = p.x + p.skew * 20;
+      const py = p.y;
+      c.beginPath();
+      c.moveTo(px, py);
+      // jagged snowline
+      c.lineTo(px - 22, py + 28);
+      c.bezierCurveTo(px - 14, py + 22, px - 6, py + 32, px + 2, py + 24);
+      c.bezierCurveTo(px + 10, py + 32, px + 18, py + 22, px + 26, py + 32);
+      c.lineTo(px + 30, py + 8);
+      c.closePath();
+      c.fill();
+      // tiny secondary snow speckle on the shadow side
+      c.fillStyle = `rgba(255,255,255,${opts.snowAlpha * 0.5})`;
+      c.beginPath();
+      c.ellipse(px + 16, py + 36, 10, 4, 0.2, 0, Math.PI * 2);
+      c.fill();
+      c.fillStyle = `rgba(255,255,255,${opts.snowAlpha})`;
+    }
+
+    // Crisp highlight along the lit ridge
+    c.strokeStyle = `rgba(255,255,255,${opts.snowAlpha * 0.4})`;
+    c.lineWidth = 1.5;
+    for (const p of peaks) {
+      c.beginPath();
+      c.moveTo(p.x + p.skew * 20, p.y);
+      c.lineTo(p.x - 18, p.y + 22);
+      c.stroke();
     }
   }
 
@@ -333,35 +385,60 @@
   }
 
   function paintPineForest(c, W, H, baseY, dense = false) {
-    // Dense band of triangular pine silhouettes
-    const seed = mulberry32(dense ? 55 : 91);
-    const rows = dense ? 2 : 2;
-    for (let row = 0; row < rows; row++) {
-      const y0 = baseY + row * 22;
-      const tone = row === 0 ? '#1f4a2e' : '#163a23';
-      c.fillStyle = tone;
-      const step = 14;
-      for (let x = -10; x < W + 10; x += step) {
-        const h = 36 + seed() * 26 + (row === 0 ? 0 : 8);
-        const w = 12 + seed() * 6;
-        c.beginPath();
-        c.moveTo(x, y0);
-        c.lineTo(x + w / 2, y0 - h);
-        c.lineTo(x + w, y0);
-        c.closePath();
-        c.fill();
-        // tiny highlight on top
-        if (seed() > 0.7) {
-          c.fillStyle = 'rgba(255,255,255,0.07)';
-          c.beginPath();
-          c.moveTo(x + w * 0.45, y0 - h + 6);
-          c.lineTo(x + w * 0.55, y0 - h + 6);
-          c.lineTo(x + w / 2, y0 - h);
-          c.closePath();
-          c.fill();
-          c.fillStyle = tone;
-        }
+    // Three layered bands of pines, getting darker and taller in front,
+    // with varied widths/heights and tiered branches for a real forest feel.
+    const bands = [
+      { y: baseY - 6,  color: '#3d6a4a', shadow: '#2a4d33', step: 18, hMin: 22, hVar: 18, wMin: 14, wVar: 6, seedOff: 11 },
+      { y: baseY + 10, color: '#235a32', shadow: '#143a1d', step: 16, hMin: 32, hVar: 24, wMin: 14, wVar: 8, seedOff: 33 },
+      { y: baseY + 28, color: '#143a23', shadow: '#0a2614', step: 14, hMin: 40, hVar: 30, wMin: 16, wVar: 10, seedOff: dense ? 71 : 91 },
+    ];
+    for (const band of bands) {
+      const seed = mulberry32(band.seedOff);
+      for (let x = -12; x < W + 12; x += band.step) {
+        const jitter = (seed() - 0.5) * band.step * 0.6;
+        const px = x + jitter;
+        const h = band.hMin + seed() * band.hVar;
+        const w = band.wMin + seed() * band.wVar;
+        drawPine(c, px, band.y, w, h, band.color, band.shadow);
       }
+    }
+  }
+
+  function drawPine(c, x, baseY, w, h, color, shadow) {
+    // Trunk hint at the bottom
+    c.fillStyle = '#3a2412';
+    c.fillRect(x + w * 0.45, baseY - 4, 2, 6);
+
+    // Tiered triangle branches
+    const tiers = 3;
+    for (let i = 0; i < tiers; i++) {
+      const tH = h * (1 - i * 0.22);
+      const tW = w * (1 - i * 0.22);
+      const tBase = baseY - i * (h * 0.28);
+      // shadow side (right)
+      c.fillStyle = shadow;
+      c.beginPath();
+      c.moveTo(x + tW * 0.5, tBase - tH);
+      c.lineTo(x + tW + 1, tBase + 1);
+      c.lineTo(x + tW * 0.5, tBase + 1);
+      c.closePath();
+      c.fill();
+      // lit side (left)
+      c.fillStyle = color;
+      c.beginPath();
+      c.moveTo(x + tW * 0.5, tBase - tH);
+      c.lineTo(x - 1, tBase + 1);
+      c.lineTo(x + tW * 0.5, tBase + 1);
+      c.closePath();
+      c.fill();
+      // top highlight
+      c.fillStyle = 'rgba(255,255,255,0.05)';
+      c.beginPath();
+      c.moveTo(x + tW * 0.5, tBase - tH);
+      c.lineTo(x + tW * 0.42, tBase - tH + 6);
+      c.lineTo(x + tW * 0.5, tBase - tH + 4);
+      c.closePath();
+      c.fill();
     }
   }
 
