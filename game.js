@@ -121,30 +121,39 @@
 
   // ---------- Background painting (cached) ----------
 
+  // Scene composition constants — share between bg painter and characters.
+  // kidY is the BODY CENTER (chest height); the body extends from y=-50 (head top)
+  // to y=+190 (feet). With scale 1.15 and waterY 0.6, the waterline cuts the kid
+  // mid-calf so they read as wading in shallow water.
+  const COMP = {
+    stream: { waterY: 0.6, kidY: 0.4, kidScale: 1.15 },
+    kayak:  { waterY: 0.58, kayakY: 0.66, kayakScale: 1.0 },
+  };
+
   function paintStreamBg(c, W, H) {
     paintSky(c, W, H);
     paintSunWithRays(c, W, H, 0.78);
     paintClouds(c, W, H, 7);
-    paintAtmosphericHaze(c, W, H, H * 0.42);
+    paintAtmosphericHaze(c, W, H, H * 0.36);
     paintFarMountains(c, W, H);
-    paintAtmosphericHaze(c, W, H, H * 0.5, 0.18);
+    paintAtmosphericHaze(c, W, H, H * 0.46, 0.18);
     paintMidHills(c, W, H);
-    paintPineForest(c, W, H, H * 0.58);
-    paintRiverbank(c, W, H);
-    paintBaseWater(c, W, H, H * 0.66, ['#5fb7e6', '#2e7ab1', '#15436c']);
-    paintRocksFG(c, W, H, true);
+    paintPineForest(c, W, H, H * 0.54);
+    paintRiverbank(c, W, H, COMP.stream.waterY);
+    paintBaseWater(c, W, H, H * COMP.stream.waterY, ['#5fb7e6', '#2e7ab1', '#15436c']);
+    paintRocksFG(c, W, H, COMP.stream.waterY);
   }
 
   function paintKayakBg(c, W, H) {
     paintSky(c, W, H, '#cce6f5', '#8fbfdf');
     paintSunWithRays(c, W, H, 0.72);
     paintClouds(c, W, H, 6);
-    paintAtmosphericHaze(c, W, H, H * 0.42);
+    paintAtmosphericHaze(c, W, H, H * 0.36);
     paintFarMountains(c, W, H, '#7d9cb8', '#5d7a96');
-    paintAtmosphericHaze(c, W, H, H * 0.5, 0.18);
+    paintAtmosphericHaze(c, W, H, H * 0.46, 0.18);
     paintMidHills(c, W, H, '#3d6a4a', '#2e5538');
-    paintPineForest(c, W, H, H * 0.6, true);
-    paintBaseWater(c, W, H, H * 0.64, ['#74c4e6', '#2a78a8', '#0e3d68']);
+    paintPineForest(c, W, H, H * 0.56, true);
+    paintBaseWater(c, W, H, H * COMP.kayak.waterY, ['#74c4e6', '#2a78a8', '#0e3d68']);
     paintLakeShoreReflections(c, W, H);
   }
 
@@ -442,14 +451,17 @@
     }
   }
 
-  function paintRiverbank(c, W, H) {
-    // narrow grass strip just at the waterline
-    const y = H * 0.66;
+  function paintRiverbank(c, W, H, waterFrac = 0.66) {
+    // narrow grass strip and a bright foam line right at the waterline
+    const y = H * waterFrac;
     const grad = c.createLinearGradient(0, y - 6, 0, y + 4);
     grad.addColorStop(0, '#3c6b3a');
     grad.addColorStop(1, 'rgba(40, 70, 50, 0)');
     c.fillStyle = grad;
     c.fillRect(0, y - 6, W, 10);
+    // foam crest
+    c.fillStyle = 'rgba(255,255,255,0.55)';
+    c.fillRect(0, y - 1, W, 2);
   }
 
   function paintBaseWater(c, W, H, topY, palette) {
@@ -479,24 +491,27 @@
     c.restore();
   }
 
-  function paintRocksFG(c, W, H, withWaterline) {
-    // distribute foreground rocks deterministically
+  function paintRocksFG(c, W, H, waterFrac = 0.66) {
+    // foreground rocks placed close to the bottom so they don't crowd the kids
     const seed = mulberry32(123);
-    const y0 = H * 0.78;
-    const rocks = 6 + Math.floor(W / 260);
+    const y0 = H * 0.85;
+    const rocks = 5 + Math.floor(W / 280);
     for (let i = 0; i < rocks; i++) {
-      const x = (i / rocks) * W + (seed() - 0.5) * 80 + 40;
-      const y = y0 + (seed() - 0.4) * 60;
-      const r = 28 + seed() * 50;
+      const x = (i / rocks) * W + (seed() - 0.5) * 70 + 50;
+      const y = y0 + (seed() - 0.4) * 50;
+      const r = 30 + seed() * 50;
       drawRock(c, x, y, r);
+      // foam wake around the rock waterline
+      drawRockFoam(c, x, y, r);
     }
-    // submerged dark spots
+    // submerged dark spots — clamp BELOW the waterline so they never appear in air
+    const waterTop = H * waterFrac + 10;
     c.fillStyle = 'rgba(20, 50, 80, 0.45)';
-    for (let i = 0; i < 18; i++) {
+    for (let i = 0; i < 14; i++) {
       const x = seed() * W;
-      const y = H * 0.72 + seed() * (H * 0.22);
+      const y = waterTop + seed() * (H - waterTop) * 0.85;
       c.beginPath();
-      c.ellipse(x, y, 16 + seed() * 26, 5 + seed() * 8, 0, 0, Math.PI * 2);
+      c.ellipse(x, y, 14 + seed() * 22, 4 + seed() * 7, 0, 0, Math.PI * 2);
       c.fill();
     }
   }
@@ -511,16 +526,40 @@
     c.ellipse(x, y, r, r * 0.55, 0, 0, Math.PI * 2);
     c.fill();
     // top highlight
-    c.fillStyle = 'rgba(255,255,255,0.18)';
+    c.fillStyle = 'rgba(255,255,255,0.22)';
     c.beginPath();
     c.ellipse(x - r * 0.3, y - r * 0.22, r * 0.55, r * 0.18, 0, 0, Math.PI * 2);
     c.fill();
+    // crack/texture
+    c.strokeStyle = 'rgba(40,30,20,0.28)';
+    c.lineWidth = 1.2;
+    c.beginPath();
+    c.moveTo(x - r * 0.4, y);
+    c.lineTo(x - r * 0.1, y - r * 0.05);
+    c.lineTo(x + r * 0.2, y + r * 0.04);
+    c.stroke();
     // damp waterline
-    c.strokeStyle = 'rgba(255,255,255,0.4)';
+    c.strokeStyle = 'rgba(255,255,255,0.45)';
     c.lineWidth = 2;
     c.beginPath();
     c.ellipse(x, y + r * 0.42, r * 0.95, r * 0.18, 0, 0, Math.PI * 2);
     c.stroke();
+  }
+
+  function drawRockFoam(c, x, y, r) {
+    // little white wave shapes hugging the upstream side of the rock
+    c.fillStyle = 'rgba(255,255,255,0.7)';
+    c.beginPath();
+    c.ellipse(x - r * 0.55, y + r * 0.46, r * 0.35, 4, 0, 0, Math.PI * 2);
+    c.fill();
+    c.beginPath();
+    c.ellipse(x + r * 0.2, y + r * 0.48, r * 0.5, 4, 0, 0, Math.PI * 2);
+    c.fill();
+    // soft bow wave just upstream
+    c.fillStyle = 'rgba(255,255,255,0.35)';
+    c.beginPath();
+    c.ellipse(x - r * 0.85, y + r * 0.35, r * 0.45, 3, 0, 0, Math.PI * 2);
+    c.fill();
   }
 
   // Pseudo-random
@@ -593,8 +632,10 @@
   // The blond little-buddy. A toddler-ish proportions, big head, big mop of hair.
   function drawBlondKid(cx, cy, opts = {}) {
     const a = (Math.sin(state.t * 0.0018) * 0.04) + (opts.lean || 0);
+    const s = opts.scale || 1;
     ctx.save();
     ctx.translate(cx, cy);
+    ctx.scale(s, s);
     ctx.rotate(a);
 
     // Submerged legs (waders) — only show top portion above water
@@ -752,8 +793,10 @@
 
   function drawBrunetteKid(cx, cy, opts = {}) {
     const a = (Math.sin(state.t * 0.0014 + 1) * 0.03) + (opts.lean || 0);
+    const s = opts.scale || 1;
     ctx.save();
     ctx.translate(cx, cy);
+    ctx.scale(s, s);
     ctx.rotate(a);
 
     if (!opts.seated) {
@@ -913,11 +956,14 @@
 
     // Save the world-space rod tip so the line can attach.
     // Rod tip is at local (230, -10) inside the (80, 56) + rotate(rodAngle) frame.
-    const tipBodyX = 80 + 230 * Math.cos(rodAngle) - (-10) * Math.sin(rodAngle);
-    const tipBodyY = 56 + 230 * Math.sin(rodAngle) + (-10) * Math.cos(rodAngle);
-    const rodTipLocal = transformPoint(tipBodyX, tipBodyY);
-    state.line.tipX = rodTipLocal.x;
-    state.line.tipY = rodTipLocal.y;
+    // Skip when drawing as a reflection — we don't want to overwrite the real tip.
+    if (!opts._ghost) {
+      const tipBodyX = 80 + 230 * Math.cos(rodAngle) - (-10) * Math.sin(rodAngle);
+      const tipBodyY = 56 + 230 * Math.sin(rodAngle) + (-10) * Math.cos(rodAngle);
+      const rodTipLocal = transformPoint(tipBodyX, tipBodyY);
+      state.line.tipX = rodTipLocal.x;
+      state.line.tipY = rodTipLocal.y;
+    }
 
     if (opts.holdPaddle) drawPaddle(opts.paddlePhase || 0);
     ctx.restore();
@@ -1581,13 +1627,20 @@
     if (state.scene === 'stream') {
       drawWater(W, H);
       drawSparkles();
-      // Two kids wading. Brunette on the right (rod tip is captured into state.line.tipX/Y).
-      drawBlondKid(W * 0.42, H * 0.5, { holdNet: true });
-      drawBrunetteKid(W * 0.62, H * 0.5, { rodAngle: -0.32 + Math.sin(state.t * 0.0009) * 0.05 });
+      // Reflections drawn first (under the kids), then the kids on top.
+      const cy = H * COMP.stream.kidY;
+      const blondX = W * 0.42, brunetteX = W * 0.6;
+      drawCharacterReflection(blondX, cy, COMP.stream.kidScale, 'blond');
+      drawCharacterReflection(brunetteX, cy, COMP.stream.kidScale, 'brunette');
+      drawBlondKid(blondX, cy, { holdNet: true, scale: COMP.stream.kidScale });
+      drawBrunetteKid(brunetteX, cy, {
+        rodAngle: -0.32 + Math.sin(state.t * 0.0009) * 0.05,
+        scale: COMP.stream.kidScale,
+      });
     } else {
       drawWater(W, H);
       drawSparkles();
-      drawKayak(W * 0.5, H * 0.62);
+      drawKayak(W * 0.5, H * COMP.kayak.kayakY);
     }
 
     // 3) Fish, line, effects
@@ -1596,6 +1649,20 @@
     drawSplashes();
     drawBubbles();
     drawFloats();
+  }
+
+  // Soft, semi-transparent flipped silhouette to suggest a water reflection.
+  function drawCharacterReflection(cx, cy, scale, who) {
+    const waterY = state.H * COMP.stream.waterY;
+    ctx.save();
+    ctx.translate(cx, waterY);
+    ctx.scale(scale, -scale * 0.35);
+    ctx.translate(0, -(waterY - cy) / scale);
+    ctx.globalAlpha = 0.22;
+    ctx.filter = 'blur(2px)';
+    if (who === 'blond') drawBlondKid(0, 0, { holdNet: false, scale: 1, _ghost: true });
+    else drawBrunetteKid(0, 0, { rodAngle: -0.32, scale: 1, _ghost: true });
+    ctx.restore();
   }
   requestAnimationFrame(loop);
 
