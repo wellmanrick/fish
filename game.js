@@ -516,80 +516,113 @@
 
     // Head
     drawHead({
-      skinTop: '#fadcb6',
-      skinBot: '#e9bd87',
-      cheek: 'rgba(220,110,110,0.55)',
+      skinTop: '#fdddb6',
+      skinBot: '#ecbe89',
+      skinShadow: '#c98d57',
+      cheek: 'rgba(232,118,108,0.55)',
       mouth: '#7a3a26',
+      brow: '#a06820',
+      iris: '#3e6a8c',
     });
 
-    // Hair — golden mop with bangs
+    // Hair — golden mop with bangs (raised so it doesn't cover eyes)
     ctx.fillStyle = '#e9b94a';
     ctx.beginPath();
-    ctx.moveTo(-40, -22);
-    ctx.bezierCurveTo(-44, -52, 30, -56, 40, -22);
-    ctx.bezierCurveTo(40, -10, 32, -2, 22, -6);
-    ctx.bezierCurveTo(12, -16, -10, -16, -22, -6);
-    ctx.bezierCurveTo(-32, -2, -40, -10, -40, -22);
+    ctx.moveTo(-42, -24);
+    ctx.bezierCurveTo(-46, -56, 32, -60, 42, -24);
+    ctx.bezierCurveTo(42, -14, 34, -10, 24, -14);
+    ctx.bezierCurveTo(14, -22, -12, -22, -24, -14);
+    ctx.bezierCurveTo(-34, -10, -42, -14, -42, -24);
     ctx.closePath();
     ctx.fill();
-    // bangs darker layer
+    // darker hair shadow underside
+    ctx.fillStyle = '#b88420';
+    ctx.beginPath();
+    ctx.ellipse(0, -18, 36, 8, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // bangs (raised — does NOT cross the eyes)
     ctx.fillStyle = '#cf9a36';
     ctx.beginPath();
-    ctx.moveTo(-22, -16);
-    ctx.quadraticCurveTo(-2, -32, 22, -14);
-    ctx.lineTo(22, -6);
-    ctx.quadraticCurveTo(2, -18, -22, -6);
+    ctx.moveTo(-26, -22);
+    ctx.quadraticCurveTo(-4, -38, 24, -18);
+    ctx.lineTo(20, -14);
+    ctx.quadraticCurveTo(0, -22, -22, -14);
     ctx.closePath();
     ctx.fill();
     // hair tufts (texture)
-    ctx.fillStyle = '#f3c75f';
-    [[-26,-26],[-12,-32],[2,-34],[16,-32],[28,-26]].forEach(([x,y]) => {
+    ctx.fillStyle = '#f6cf63';
+    [[-28,-30],[-14,-36],[2,-40],[18,-36],[30,-30]].forEach(([x,y]) => {
       ctx.beginPath();
-      ctx.ellipse(x, y, 6, 4, 0, 0, Math.PI * 2);
+      ctx.ellipse(x, y, 7, 4, 0, 0, Math.PI * 2);
       ctx.fill();
     });
+    // tiny side curl
+    ctx.fillStyle = '#cf9a36';
+    ctx.beginPath(); ctx.arc(-36, -14, 7, 0, Math.PI * 2); ctx.fill();
 
-    // Holding net (one arm out)
+    // Visible right arm (sleeve) holding the net
     if (opts.holdNet) {
-      // hand
-      ctx.fillStyle = '#fadcb6';
-      ctx.beginPath();
-      ctx.arc(56, 56, 9, 0, Math.PI * 2);
-      ctx.fill();
-      // net handle
-      ctx.strokeStyle = '#a8651b';
+      // sleeve from shoulder to hand
+      ctx.strokeStyle = '#9a6c2e';
       ctx.lineCap = 'round';
+      ctx.lineWidth = 22;
+      ctx.beginPath();
+      ctx.moveTo(36, 38);    // shoulder
+      ctx.quadraticCurveTo(58, 44, 70, 64);  // bent forearm
+      ctx.stroke();
+      // sleeve highlight
+      ctx.strokeStyle = '#c69460';
       ctx.lineWidth = 6;
       ctx.beginPath();
-      ctx.moveTo(56, 56);
-      ctx.lineTo(140, 110);
+      ctx.moveTo(40, 36);
+      ctx.quadraticCurveTo(60, 42, 70, 60);
       ctx.stroke();
-      // net hoop
-      ctx.strokeStyle = '#3d5a78';
-      ctx.lineWidth = 4;
+      // hand (skin)
+      ctx.fillStyle = '#fadcb6';
+      ctx.beginPath(); ctx.arc(72, 66, 10, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#d8a674';
+      ctx.beginPath(); ctx.arc(74, 70, 5, 0, Math.PI * 2); ctx.fill();
+
+      // Net handle continues from hand
+      ctx.strokeStyle = '#8a4d18';
+      ctx.lineCap = 'round';
+      ctx.lineWidth = 7;
       ctx.beginPath();
-      ctx.arc(168, 132, 26, 0, Math.PI * 2);
+      ctx.moveTo(72, 66);
+      ctx.lineTo(146, 122);
       ctx.stroke();
-      // net mesh
-      ctx.fillStyle = 'rgba(255,255,255,0.3)';
-      ctx.beginPath();
-      ctx.arc(168, 132, 24, 0, Math.PI * 2);
-      ctx.fill();
+      // grip wrap
+      ctx.strokeStyle = '#3d2812';
+      ctx.lineWidth = 3;
+      for (let i = 0; i < 4; i++) {
+        const t = 0.05 + i * 0.05;
+        const x = 72 + (146 - 72) * t;
+        const y = 66 + (122 - 66) * t;
+        ctx.beginPath();
+        ctx.moveTo(x - 4, y - 3);
+        ctx.lineTo(x + 4, y + 3);
+        ctx.stroke();
+      }
+      // net hoop with thickness
+      ctx.strokeStyle = '#2b3f55';
+      ctx.lineWidth = 6;
+      ctx.beginPath(); ctx.arc(170, 142, 28, 0, Math.PI * 2); ctx.stroke();
+      // net inside (slightly translucent)
+      ctx.fillStyle = 'rgba(180, 210, 230, 0.45)';
+      ctx.beginPath(); ctx.arc(170, 142, 26, 0, Math.PI * 2); ctx.fill();
       // mesh weave
+      ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+      ctx.lineWidth = 0.8;
+      for (let i = -24; i <= 24; i += 5) {
+        ctx.beginPath(); ctx.moveTo(170 + i, 142 - 24); ctx.lineTo(170 + i, 142 + 24); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(170 - 24, 142 + i); ctx.lineTo(170 + 24, 142 + i); ctx.stroke();
+      }
+      // hoop top highlight
       ctx.strokeStyle = 'rgba(255,255,255,0.6)';
-      ctx.lineWidth = 0.7;
-      for (let i = -22; i <= 22; i += 6) {
-        ctx.beginPath();
-        ctx.moveTo(168 + i, 132 - 22);
-        ctx.lineTo(168 + i, 132 + 22);
-        ctx.stroke();
-      }
-      for (let i = -22; i <= 22; i += 6) {
-        ctx.beginPath();
-        ctx.moveTo(168 - 22, 132 + i);
-        ctx.lineTo(168 + 22, 132 + i);
-        ctx.stroke();
-      }
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.arc(170, 142, 28, Math.PI * 1.2, Math.PI * 1.8);
+      ctx.stroke();
     }
 
     if (opts.holdPaddle) drawPaddle(opts.paddlePhase || 0);
@@ -638,73 +671,130 @@
 
     // Head
     drawHead({
-      skinTop: '#f0c79b',
-      skinBot: '#d4a16f',
-      cheek: 'rgba(180,90,80,0.45)',
+      skinTop: '#f3cc9f',
+      skinBot: '#d6a26f',
+      skinShadow: '#a9744a',
+      cheek: 'rgba(190,98,82,0.5)',
       mouth: '#6a3422',
+      brow: '#3a2412',
+      iris: '#5a3a22',
     });
 
-    // Curly brown hair
-    ctx.fillStyle = '#5a3920';
-    const curls = [
-      [-32,-22,16],[-22,-32,18],[-8,-36,16],[8,-36,16],[22,-32,18],[34,-22,16],
-      [-30,-12,14],[30,-12,14],
+    // Curly brown hair — tighter ring of curls AROUND the head, NOT over the eyes
+    ctx.fillStyle = '#3e2716';
+    const outerCurls = [
+      [-36,-26,14],[-26,-36,17],[-12,-42,17],[6,-42,17],[22,-38,17],[36,-28,14],
+      [-40,-12,12],[40,-12,12],
     ];
-    curls.forEach(([x,y,r]) => {
+    outerCurls.forEach(([x,y,r]) => {
       ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
     });
-    // bangs
-    ctx.fillStyle = '#4a2e18';
+    // lighter highlights on top curls
+    ctx.fillStyle = '#5a3920';
+    [[-22,-32,8],[-6,-40,9],[12,-38,8],[26,-32,8]].forEach(([x,y,r]) => {
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+    });
+    // bangs — placed up at the forehead, NOT over the eyes
+    ctx.fillStyle = '#2c1a0c';
     ctx.beginPath();
-    ctx.moveTo(-22, -10);
-    ctx.quadraticCurveTo(-4, -24, 22, -10);
-    ctx.lineTo(20, -2);
-    ctx.quadraticCurveTo(0, -12, -22, -2);
+    ctx.moveTo(-26, -22);
+    ctx.quadraticCurveTo(-2, -34, 26, -22);
+    ctx.quadraticCurveTo(20, -16, 8, -18);
+    ctx.quadraticCurveTo(-8, -16, -26, -22);
     ctx.closePath();
     ctx.fill();
-    // freckles
-    ctx.fillStyle = '#a76844';
-    [[-9,4],[-3,6],[6,4],[12,6],[-14,8],[15,8]].forEach(([x,y])=>{
+    // freckles across the bridge (small, subtle)
+    ctx.fillStyle = '#8a4f30';
+    [[-10,3],[-4,5],[5,3],[11,5],[-14,7],[15,7]].forEach(([x,y])=>{
       ctx.beginPath(); ctx.arc(x, y, 1.2, 0, Math.PI*2); ctx.fill();
     });
 
-    // Rod arm + rod tip lives in `opts.rodTip` (world coords relative to body)
+    // Visible rod arm (sleeve from shoulder, hoodie cuff, glove)
     const rodAngle = opts.rodAngle ?? -0.32;
-    ctx.save();
-    ctx.translate(40, 50);
-    ctx.rotate(rodAngle);
-    // glove (red/orange)
-    ctx.fillStyle = '#c1442a';
-    rrect(-7, -14, 22, 24, 5);
-    ctx.fillStyle = '#7a2a18';
-    rrect(-7, -14, 22, 6, 3);
-    // rod
-    ctx.strokeStyle = '#161616';
+    // sleeve under hoodie (black)
+    ctx.strokeStyle = '#262d36';
     ctx.lineCap = 'round';
-    ctx.lineWidth = 4;
+    ctx.lineWidth = 24;
+    ctx.beginPath();
+    ctx.moveTo(40, 40);
+    ctx.quadraticCurveTo(70, 40, 80, 56);
+    ctx.stroke();
+    // vest sleeve overlay (the vest is sleeveless but the upper arm shows the vest edge)
+    ctx.strokeStyle = '#7a6c44';
+    ctx.lineWidth = 8;
+    ctx.beginPath();
+    ctx.moveTo(40, 36);
+    ctx.lineTo(50, 40);
+    ctx.stroke();
+
+    ctx.save();
+    ctx.translate(80, 56);
+    ctx.rotate(rodAngle);
+    // hoodie cuff
+    ctx.fillStyle = '#1d242c';
+    rrect(-10, -16, 20, 12, 3);
+    // glove (red/orange) with knuckle band
+    ctx.fillStyle = '#c1442a';
+    rrect(-9, -14, 24, 26, 6);
+    ctx.fillStyle = '#7a2a18';
+    rrect(-9, -14, 24, 6, 3);
+    ctx.fillStyle = '#e85d3a';
+    rrect(-9, -2, 24, 4, 2);
+    // little finger lines
+    ctx.strokeStyle = '#7a2a18';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 3; i++) {
+      const x = -7 + i * 7;
+      ctx.beginPath(); ctx.moveTo(x, 6); ctx.lineTo(x, 12); ctx.stroke();
+    }
+    // rod
+    ctx.strokeStyle = '#0e0e0e';
+    ctx.lineCap = 'round';
+    ctx.lineWidth = 5;
     ctx.beginPath();
     ctx.moveTo(8, -2);
-    ctx.quadraticCurveTo(140, -36, 240, -16);
+    ctx.quadraticCurveTo(120, -34, 230, -10);
     ctx.stroke();
+    // rod highlight
+    ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(20, -6);
+    ctx.quadraticCurveTo(120, -36, 220, -14);
+    ctx.stroke();
+    // line guides
+    ctx.fillStyle = '#222';
+    [0.25, 0.5, 0.75].forEach(t => {
+      const x = 8 + (230 - 8) * t;
+      const y = -2 + (-10 - -2) * t - 20 * t * (1 - t);
+      ctx.beginPath(); ctx.arc(x, y - 2, 2, 0, Math.PI * 2); ctx.fill();
+    });
     // rod tip mark
     ctx.fillStyle = '#161616';
-    ctx.beginPath(); ctx.arc(240, -16, 2.8, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(230, -10, 3, 0, Math.PI * 2); ctx.fill();
     // reel
-    const reelG = ctx.createRadialGradient(20, 8, 1, 20, 8, 11);
-    reelG.addColorStop(0, '#c8c8c8');
-    reelG.addColorStop(1, '#5a5a5a');
+    const reelG = ctx.createRadialGradient(20, 10, 1, 20, 10, 13);
+    reelG.addColorStop(0, '#dadada');
+    reelG.addColorStop(1, '#454545');
     ctx.fillStyle = reelG;
-    ctx.beginPath(); ctx.arc(20, 8, 11, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = '#222'; ctx.lineWidth = 1.6;
-    ctx.beginPath(); ctx.arc(20, 8, 11, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(20, 10, 13, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 1.8;
+    ctx.beginPath(); ctx.arc(20, 10, 13, 0, Math.PI * 2); ctx.stroke();
+    // reel inner ring
+    ctx.strokeStyle = '#888';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(20, 10, 8, 0, Math.PI * 2); ctx.stroke();
     // reel handle
-    ctx.fillStyle = '#161616';
-    ctx.beginPath(); ctx.arc(20, 8, 3, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#1a1a1a';
+    ctx.beginPath(); ctx.arc(20, 10, 3.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(28, 4, 2, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
 
-    // Save the world-space rod tip so the line can attach
-    const rodTipLocal = transformPoint(40 + 240 * Math.cos(rodAngle) - (-16) * Math.sin(rodAngle),
-                                       50 + 240 * Math.sin(rodAngle) + (-16) * Math.cos(rodAngle));
+    // Save the world-space rod tip so the line can attach.
+    // Rod tip is at local (230, -10) inside the (80, 56) + rotate(rodAngle) frame.
+    const tipBodyX = 80 + 230 * Math.cos(rodAngle) - (-10) * Math.sin(rodAngle);
+    const tipBodyY = 56 + 230 * Math.sin(rodAngle) + (-10) * Math.cos(rodAngle);
+    const rodTipLocal = transformPoint(tipBodyX, tipBodyY);
     state.line.tipX = rodTipLocal.x;
     state.line.tipY = rodTipLocal.y;
 
@@ -723,55 +813,106 @@
     return { x, y };
   }
 
+  // p: { skinTop, skinBot, skinShadow, cheek, mouth, brow }
   function drawHead(p) {
-    // neck
+    // Neck
     ctx.fillStyle = p.skinBot;
-    rrect(-12, 14, 24, 14, 4);
-    // head shape (slightly pear)
-    const hg = ctx.createLinearGradient(0, -42, 0, 28);
+    rrect(-13, 14, 26, 16, 5);
+    // Neck shadow
+    ctx.fillStyle = p.skinShadow;
+    ctx.fillRect(-13, 14, 26, 4);
+
+    // Head — slightly tall, painterly
+    const hg = ctx.createRadialGradient(-6, -16, 6, 0, -4, 50);
     hg.addColorStop(0, p.skinTop);
     hg.addColorStop(1, p.skinBot);
     ctx.fillStyle = hg;
     ctx.beginPath();
-    ctx.ellipse(0, -8, 38, 42, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, -8, 40, 45, 0, 0, Math.PI * 2);
     ctx.fill();
-    // ear hint
+
+    // Side shading on the right (subtle volume)
+    ctx.save();
+    ctx.beginPath();
+    ctx.ellipse(0, -8, 40, 45, 0, 0, Math.PI * 2);
+    ctx.clip();
+    const sg = ctx.createLinearGradient(10, 0, 40, 0);
+    sg.addColorStop(0, 'rgba(0,0,0,0)');
+    sg.addColorStop(1, p.skinShadow + (typeof p.skinShadow === 'string' && p.skinShadow.length === 7 ? '88' : ''));
+    ctx.fillStyle = sg;
+    ctx.fillRect(0, -56, 50, 100);
+    ctx.restore();
+
+    // Ears
     ctx.fillStyle = p.skinBot;
-    ctx.beginPath();
-    ctx.ellipse(-37, -4, 5, 8, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(37, -4, 5, 8, 0, 0, Math.PI * 2);
-    ctx.fill();
-    // cheeks
+    ctx.beginPath(); ctx.ellipse(-39, -4, 6, 10, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(39, -4, 6, 10, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = p.skinShadow;
+    ctx.beginPath(); ctx.ellipse(-39, -2, 3, 5, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(39, -2, 3, 5, 0, 0, Math.PI * 2); ctx.fill();
+
+    // Cheeks
     ctx.fillStyle = p.cheek;
-    ctx.beginPath(); ctx.arc(-20, 4, 6, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(20, 4, 6, 0, Math.PI * 2); ctx.fill();
-    // eyes — whites + pupil + highlight
-    ctx.fillStyle = '#fff';
-    ctx.beginPath(); ctx.ellipse(-12, -6, 5, 6, 0, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(12, -6, 5, 6, 0, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle = '#1c2a36';
-    ctx.beginPath(); ctx.arc(-11, -5, 3, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(13, -5, 3, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#fff';
-    ctx.beginPath(); ctx.arc(-10, -7, 1.1, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(14, -7, 1.1, 0, Math.PI*2); ctx.fill();
-    // nose hint
-    ctx.fillStyle = 'rgba(170, 110, 80, 0.55)';
-    ctx.beginPath(); ctx.ellipse(0, 4, 2.5, 1.8, 0, 0, Math.PI * 2); ctx.fill();
-    // smile
-    ctx.strokeStyle = p.mouth;
-    ctx.lineWidth = 2.4;
+    ctx.beginPath(); ctx.arc(-22, 6, 7, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(22, 6, 7, 0, Math.PI * 2); ctx.fill();
+
+    // Eyebrows (drawn before eyes so eyes pop above)
+    ctx.strokeStyle = p.brow;
+    ctx.lineWidth = 3;
     ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.arc(0, 10, 8, 0.18 * Math.PI, 0.82 * Math.PI);
+    ctx.moveTo(-18, -16); ctx.quadraticCurveTo(-12, -19, -6, -16);
     ctx.stroke();
-    // teeth hint
-    ctx.fillStyle = '#fff';
     ctx.beginPath();
-    ctx.ellipse(0, 12, 4, 1.8, 0, 0, Math.PI * 2);
+    ctx.moveTo(6, -16); ctx.quadraticCurveTo(12, -19, 18, -16);
+    ctx.stroke();
+
+    // Eyes — bigger whites so the sparkle reads on mobile
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.ellipse(-12, -6, 7, 8, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(12, -6, 7, 8, 0, 0, Math.PI*2); ctx.fill();
+    // iris (looking slightly to the right toward fish)
+    ctx.fillStyle = p.iris || '#3a5a7a';
+    ctx.beginPath(); ctx.arc(-11, -5, 4.2, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(13, -5, 4.2, 0, Math.PI * 2); ctx.fill();
+    // pupil
+    ctx.fillStyle = '#0c1822';
+    ctx.beginPath(); ctx.arc(-11, -5, 2.4, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(13, -5, 2.4, 0, Math.PI * 2); ctx.fill();
+    // catchlight
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(-9.5, -7, 1.4, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(14.5, -7, 1.4, 0, Math.PI*2); ctx.fill();
+    // tiny secondary glint
+    ctx.globalAlpha = 0.6;
+    ctx.beginPath(); ctx.arc(-13, -3, 0.7, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(11, -3, 0.7, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // Nose
+    ctx.fillStyle = p.skinShadow;
+    ctx.beginPath();
+    ctx.moveTo(-3, 2);
+    ctx.quadraticCurveTo(0, 8, 3, 2);
+    ctx.quadraticCurveTo(0, 4, -3, 2);
+    ctx.closePath();
     ctx.fill();
+
+    // Smile — open with teeth + tongue
+    ctx.fillStyle = '#5a2014';
+    ctx.beginPath();
+    ctx.ellipse(0, 14, 9, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(-7, 11, 14, 3);
+    ctx.fillStyle = '#e07060';
+    ctx.beginPath(); ctx.ellipse(0, 16, 5, 2, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = p.mouth;
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.arc(0, 12, 9, 0.18 * Math.PI, 0.82 * Math.PI);
+    ctx.stroke();
   }
 
   function drawPaddle(phase) {
