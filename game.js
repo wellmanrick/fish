@@ -121,142 +121,247 @@
 
   // ---------- Background painting (cached) ----------
 
+  // Scene composition constants — share between bg painter and characters.
+  // kidY is the BODY CENTER (chest height); the body extends from y=-50 (head top)
+  // to y=+190 (feet). With scale 1.15 and waterY 0.6, the waterline cuts the kid
+  // mid-calf so they read as wading in shallow water.
+  const COMP = {
+    stream: { waterY: 0.6, kidY: 0.4, kidScale: 1.15 },
+    kayak:  { waterY: 0.58, kayakY: 0.66, kayakScale: 1.0 },
+  };
+
   function paintStreamBg(c, W, H) {
     paintSky(c, W, H);
-    paintSun(c, W, H, 0.78);
-    paintClouds(c, W, H, 6);
+    paintSunWithRays(c, W, H, 0.78);
+    paintClouds(c, W, H, 7);
+    paintAtmosphericHaze(c, W, H, H * 0.36);
     paintFarMountains(c, W, H);
+    paintAtmosphericHaze(c, W, H, H * 0.46, 0.18);
     paintMidHills(c, W, H);
-    paintPineForest(c, W, H, H * 0.58);
-    paintRiverbank(c, W, H);
-    paintBaseWater(c, W, H, H * 0.66, ['#5fb7e6', '#2e7ab1', '#15436c']);
-    paintRocksFG(c, W, H, true);
+    paintPineForest(c, W, H, H * 0.54);
+    paintRiverbank(c, W, H, COMP.stream.waterY);
+    paintBaseWater(c, W, H, H * COMP.stream.waterY, ['#5fb7e6', '#2e7ab1', '#15436c']);
+    paintRocksFG(c, W, H, COMP.stream.waterY);
   }
 
   function paintKayakBg(c, W, H) {
-    paintSky(c, W, H, '#bce0f5', '#8fbfdf');
-    paintSun(c, W, H, 0.72);
-    paintClouds(c, W, H, 5);
+    paintSky(c, W, H, '#cce6f5', '#8fbfdf');
+    paintSunWithRays(c, W, H, 0.72);
+    paintClouds(c, W, H, 6);
+    paintAtmosphericHaze(c, W, H, H * 0.36);
     paintFarMountains(c, W, H, '#7d9cb8', '#5d7a96');
+    paintAtmosphericHaze(c, W, H, H * 0.46, 0.18);
     paintMidHills(c, W, H, '#3d6a4a', '#2e5538');
-    paintPineForest(c, W, H, H * 0.6, true);
-    paintBaseWater(c, W, H, H * 0.64, ['#74c4e6', '#2a78a8', '#0e3d68']);
+    paintPineForest(c, W, H, H * 0.56, true);
+    paintBaseWater(c, W, H, H * COMP.kayak.waterY, ['#74c4e6', '#2a78a8', '#0e3d68']);
     paintLakeShoreReflections(c, W, H);
   }
 
-  function paintSky(c, W, H, top = '#cbe6ff', mid = '#8fc8e8') {
+  function paintSky(c, W, H, top = '#d8ecff', mid = '#8fc8e8') {
+    // 3-stop gradient with a hint of warm horizon
     const g = c.createLinearGradient(0, 0, 0, H * 0.7);
     g.addColorStop(0, top);
-    g.addColorStop(1, mid);
+    g.addColorStop(0.7, mid);
+    g.addColorStop(1, '#bcdcef');
     c.fillStyle = g;
     c.fillRect(0, 0, W, H * 0.7);
   }
 
-  function paintSun(c, W, H, xFrac = 0.7) {
+  function paintSunWithRays(c, W, H, xFrac = 0.7) {
     const cx = W * xFrac;
-    const cy = H * 0.18;
-    const r = Math.min(W, H) * 0.18;
-    const grad = c.createRadialGradient(cx, cy, r * 0.05, cx, cy, r);
-    grad.addColorStop(0, 'rgba(255, 252, 220, 0.95)');
-    grad.addColorStop(0.4, 'rgba(255, 240, 180, 0.45)');
-    grad.addColorStop(1, 'rgba(255, 220, 150, 0)');
-    c.fillStyle = grad;
+    const cy = H * 0.16;
+    const r = Math.min(W, H) * 0.16;
+
+    // Outer glow
+    const glow = c.createRadialGradient(cx, cy, r * 0.05, cx, cy, r * 1.6);
+    glow.addColorStop(0, 'rgba(255, 250, 220, 0.85)');
+    glow.addColorStop(0.35, 'rgba(255, 230, 170, 0.40)');
+    glow.addColorStop(1, 'rgba(255, 200, 140, 0)');
+    c.fillStyle = glow;
     c.beginPath();
-    c.arc(cx, cy, r, 0, Math.PI * 2);
+    c.arc(cx, cy, r * 1.6, 0, Math.PI * 2);
     c.fill();
-    // Sun core
-    c.fillStyle = 'rgba(255, 250, 220, 0.9)';
+
+    // Sun rays (subtle wedges)
+    c.save();
+    c.translate(cx, cy);
+    c.globalCompositeOperation = 'lighter';
+    const rayGrad = c.createRadialGradient(0, 0, r * 0.2, 0, 0, r * 4);
+    rayGrad.addColorStop(0, 'rgba(255, 245, 200, 0.32)');
+    rayGrad.addColorStop(1, 'rgba(255, 245, 200, 0)');
+    c.fillStyle = rayGrad;
+    for (let i = 0; i < 6; i++) {
+      c.save();
+      c.rotate((i / 6) * Math.PI * 2 + 0.3);
+      c.beginPath();
+      c.moveTo(0, 0);
+      c.lineTo(r * 4, -r * 0.18);
+      c.lineTo(r * 4, r * 0.18);
+      c.closePath();
+      c.fill();
+      c.restore();
+    }
+    c.restore();
+
+    // Sun disc
+    c.fillStyle = 'rgba(255, 250, 220, 0.95)';
     c.beginPath();
-    c.arc(cx, cy, r * 0.18, 0, Math.PI * 2);
+    c.arc(cx, cy, r * 0.32, 0, Math.PI * 2);
     c.fill();
+  }
+
+  function paintAtmosphericHaze(c, W, H, y, alpha = 0.32) {
+    // Soft horizontal haze band that sits in front of distant objects
+    const g = c.createLinearGradient(0, y - 30, 0, y + 50);
+    g.addColorStop(0, `rgba(220, 230, 240, 0)`);
+    g.addColorStop(0.5, `rgba(220, 230, 240, ${alpha})`);
+    g.addColorStop(1, `rgba(220, 230, 240, 0)`);
+    c.fillStyle = g;
+    c.fillRect(0, y - 30, W, 80);
   }
 
   function paintClouds(c, W, H, n = 6) {
     const seed = mulberry32(13);
     for (let i = 0; i < n; i++) {
       const x = seed() * W;
-      const y = H * (0.06 + seed() * 0.18);
-      const s = 0.7 + seed() * 0.9;
-      drawCloudShape(c, x, y, s);
+      const y = H * (0.04 + seed() * 0.22);
+      const s = 0.35 + seed() * 0.55;  // smaller and wispier
+      const tone = 0.85 + seed() * 0.15;
+      drawCloudShape(c, x, y, s, tone);
     }
   }
 
-  function drawCloudShape(c, x, y, s) {
+  function drawCloudShape(c, x, y, s, tone = 0.95) {
     c.save();
     c.translate(x, y);
     c.scale(s, s);
-    // soft underside shadow
-    c.fillStyle = 'rgba(150, 170, 195, 0.35)';
+    // long, soft underside shadow
+    c.fillStyle = 'rgba(150, 170, 195, 0.18)';
     c.beginPath();
-    c.ellipse(0, 12, 90, 14, 0, 0, Math.PI * 2);
+    c.ellipse(0, 14, 110, 8, 0, 0, Math.PI * 2);
     c.fill();
-    // body
-    c.fillStyle = 'rgba(255, 255, 255, 0.95)';
-    [
-      [-50, 4, 30],
-      [-20, -10, 36],
-      [10, -14, 30],
-      [40, -6, 32],
-      [60, 8, 26],
-    ].forEach(([cx, cy, r]) => {
+    // wispy puffs (more, smaller, varied)
+    const puffs = [
+      [-60, 4, 22], [-40, -4, 26], [-20, -8, 24], [0, -10, 22],
+      [22, -6, 24], [44, -2, 20], [60, 4, 16],
+    ];
+    c.fillStyle = `rgba(255, 255, 255, ${tone})`;
+    puffs.forEach(([cx, cy, r]) => {
       c.beginPath();
       c.arc(cx, cy, r, 0, Math.PI * 2);
       c.fill();
     });
-    // highlight
-    c.fillStyle = 'rgba(255,255,255,0.6)';
+    // top wisp highlight
+    c.fillStyle = 'rgba(255,255,255,0.45)';
     c.beginPath();
-    c.ellipse(-10, -16, 30, 6, 0, 0, Math.PI * 2);
+    c.ellipse(-10, -14, 38, 4, 0, 0, Math.PI * 2);
+    c.fill();
+    // stretched whisp tail
+    c.fillStyle = `rgba(255,255,255,${tone * 0.7})`;
+    c.beginPath();
+    c.ellipse(70, 6, 30, 4, 0, 0, Math.PI * 2);
     c.fill();
     c.restore();
   }
 
-  function paintFarMountains(c, W, H, top = '#7e9bb8', shadow = '#5e7a96') {
-    const baseY = H * 0.5;
+  function paintFarMountains(c, W, H, top = '#88a4be', shadow = '#5e7a96') {
+    // Two layers: a paler "back ridge" then the main range, for atmospheric depth.
+    paintMountainRidge(c, W, H, {
+      baseY: H * 0.46,
+      heightMin: 80,
+      heightVar: 70,
+      width: 260,
+      seed: 19,
+      fill: '#a3bcd2',
+      shadow: '#7c97b0',
+      snowAlpha: 0.55,
+    });
+    paintMountainRidge(c, W, H, {
+      baseY: H * 0.5,
+      heightMin: 130,
+      heightVar: 120,
+      width: 200,
+      seed: 7,
+      fill: top,
+      shadow,
+      snowAlpha: 0.92,
+    });
+  }
+
+  function paintMountainRidge(c, W, H, opts) {
+    const seed = mulberry32(opts.seed);
     const peaks = [];
-    const seed = mulberry32(7);
-    let x = -40;
-    while (x < W + 80) {
-      const peakX = x + 80 + seed() * 80;
-      const peakY = baseY - (110 + seed() * 110);
-      peaks.push([peakX, peakY]);
-      x = peakX + 40;
+    let x = -opts.width * 0.6;
+    while (x < W + opts.width) {
+      const peakX = x + opts.width * (0.4 + seed() * 0.4);
+      const peakY = opts.baseY - (opts.heightMin + seed() * opts.heightVar);
+      const skew = (seed() - 0.5) * 0.4;  // tilt the peak left or right
+      peaks.push({ x: peakX, y: peakY, skew });
+      x = peakX + opts.width * 0.3;
     }
-    // body
-    c.fillStyle = top;
+
+    // Body — curved silhouette using bezier between peaks
+    c.fillStyle = opts.fill;
     c.beginPath();
-    c.moveTo(-20, baseY);
-    for (const p of peaks) {
-      c.lineTo(p[0] - 50, baseY - 10);
-      c.lineTo(p[0], p[1]);
-    }
-    c.lineTo(W + 20, baseY);
-    c.closePath();
-    c.fill();
-    // shadow side
-    c.fillStyle = shadow;
-    c.beginPath();
+    c.moveTo(-20, opts.baseY);
     for (let i = 0; i < peaks.length; i++) {
       const p = peaks[i];
-      c.moveTo(p[0], p[1]);
-      c.lineTo(p[0] + 28, p[1] + 38);
-      c.lineTo(p[0] + 60, baseY);
-      c.lineTo(p[0], baseY);
-      c.closePath();
+      const prevX = i === 0 ? -20 : (peaks[i-1].x + (p.x - peaks[i-1].x) * 0.55);
+      const prevY = i === 0 ? opts.baseY : (peaks[i-1].y + (opts.baseY - peaks[i-1].y) * 0.45);
+      // gentle saddle between peaks
+      c.quadraticCurveTo(prevX, prevY + 4, p.x - opts.width * 0.18, p.y + (p.y - opts.baseY) * -0.05);
+      // sharp-ish ridge to peak
+      c.lineTo(p.x + p.skew * 20, p.y);
+      c.lineTo(p.x + 8, p.y + 6);
     }
+    c.lineTo(W + 20, opts.baseY);
+    c.closePath();
     c.fill();
-    // snow caps
-    c.fillStyle = 'rgba(255,255,255,0.92)';
+
+    // Shadow side (right of each peak)
+    c.fillStyle = opts.shadow;
+    c.globalAlpha = 0.85;
     for (const p of peaks) {
       c.beginPath();
-      c.moveTo(p[0], p[1]);
-      c.lineTo(p[0] - 18, p[1] + 22);
-      c.lineTo(p[0] - 8, p[1] + 18);
-      c.lineTo(p[0] + 4, p[1] + 26);
-      c.lineTo(p[0] + 16, p[1] + 18);
-      c.lineTo(p[0] + 24, p[1] + 28);
+      c.moveTo(p.x + p.skew * 20, p.y);
+      c.lineTo(p.x + 8, p.y + 8);
+      c.bezierCurveTo(p.x + 30, p.y + 50, p.x + 60, p.y + 90, p.x + 80, opts.baseY);
+      c.lineTo(p.x, opts.baseY);
       c.closePath();
       c.fill();
+    }
+    c.globalAlpha = 1;
+
+    // Snow caps — multiple irregular patches per peak
+    c.fillStyle = `rgba(255,255,255,${opts.snowAlpha})`;
+    for (const p of peaks) {
+      const px = p.x + p.skew * 20;
+      const py = p.y;
+      c.beginPath();
+      c.moveTo(px, py);
+      // jagged snowline
+      c.lineTo(px - 22, py + 28);
+      c.bezierCurveTo(px - 14, py + 22, px - 6, py + 32, px + 2, py + 24);
+      c.bezierCurveTo(px + 10, py + 32, px + 18, py + 22, px + 26, py + 32);
+      c.lineTo(px + 30, py + 8);
+      c.closePath();
+      c.fill();
+      // tiny secondary snow speckle on the shadow side
+      c.fillStyle = `rgba(255,255,255,${opts.snowAlpha * 0.5})`;
+      c.beginPath();
+      c.ellipse(px + 16, py + 36, 10, 4, 0.2, 0, Math.PI * 2);
+      c.fill();
+      c.fillStyle = `rgba(255,255,255,${opts.snowAlpha})`;
+    }
+
+    // Crisp highlight along the lit ridge
+    c.strokeStyle = `rgba(255,255,255,${opts.snowAlpha * 0.4})`;
+    c.lineWidth = 1.5;
+    for (const p of peaks) {
+      c.beginPath();
+      c.moveTo(p.x + p.skew * 20, p.y);
+      c.lineTo(p.x - 18, p.y + 22);
+      c.stroke();
     }
   }
 
@@ -289,46 +394,74 @@
   }
 
   function paintPineForest(c, W, H, baseY, dense = false) {
-    // Dense band of triangular pine silhouettes
-    const seed = mulberry32(dense ? 55 : 91);
-    const rows = dense ? 2 : 2;
-    for (let row = 0; row < rows; row++) {
-      const y0 = baseY + row * 22;
-      const tone = row === 0 ? '#1f4a2e' : '#163a23';
-      c.fillStyle = tone;
-      const step = 14;
-      for (let x = -10; x < W + 10; x += step) {
-        const h = 36 + seed() * 26 + (row === 0 ? 0 : 8);
-        const w = 12 + seed() * 6;
-        c.beginPath();
-        c.moveTo(x, y0);
-        c.lineTo(x + w / 2, y0 - h);
-        c.lineTo(x + w, y0);
-        c.closePath();
-        c.fill();
-        // tiny highlight on top
-        if (seed() > 0.7) {
-          c.fillStyle = 'rgba(255,255,255,0.07)';
-          c.beginPath();
-          c.moveTo(x + w * 0.45, y0 - h + 6);
-          c.lineTo(x + w * 0.55, y0 - h + 6);
-          c.lineTo(x + w / 2, y0 - h);
-          c.closePath();
-          c.fill();
-          c.fillStyle = tone;
-        }
+    // Three layered bands of pines, getting darker and taller in front,
+    // with varied widths/heights and tiered branches for a real forest feel.
+    const bands = [
+      { y: baseY - 6,  color: '#3d6a4a', shadow: '#2a4d33', step: 18, hMin: 22, hVar: 18, wMin: 14, wVar: 6, seedOff: 11 },
+      { y: baseY + 10, color: '#235a32', shadow: '#143a1d', step: 16, hMin: 32, hVar: 24, wMin: 14, wVar: 8, seedOff: 33 },
+      { y: baseY + 28, color: '#143a23', shadow: '#0a2614', step: 14, hMin: 40, hVar: 30, wMin: 16, wVar: 10, seedOff: dense ? 71 : 91 },
+    ];
+    for (const band of bands) {
+      const seed = mulberry32(band.seedOff);
+      for (let x = -12; x < W + 12; x += band.step) {
+        const jitter = (seed() - 0.5) * band.step * 0.6;
+        const px = x + jitter;
+        const h = band.hMin + seed() * band.hVar;
+        const w = band.wMin + seed() * band.wVar;
+        drawPine(c, px, band.y, w, h, band.color, band.shadow);
       }
     }
   }
 
-  function paintRiverbank(c, W, H) {
-    // narrow grass strip just at the waterline
-    const y = H * 0.66;
+  function drawPine(c, x, baseY, w, h, color, shadow) {
+    // Trunk hint at the bottom
+    c.fillStyle = '#3a2412';
+    c.fillRect(x + w * 0.45, baseY - 4, 2, 6);
+
+    // Tiered triangle branches
+    const tiers = 3;
+    for (let i = 0; i < tiers; i++) {
+      const tH = h * (1 - i * 0.22);
+      const tW = w * (1 - i * 0.22);
+      const tBase = baseY - i * (h * 0.28);
+      // shadow side (right)
+      c.fillStyle = shadow;
+      c.beginPath();
+      c.moveTo(x + tW * 0.5, tBase - tH);
+      c.lineTo(x + tW + 1, tBase + 1);
+      c.lineTo(x + tW * 0.5, tBase + 1);
+      c.closePath();
+      c.fill();
+      // lit side (left)
+      c.fillStyle = color;
+      c.beginPath();
+      c.moveTo(x + tW * 0.5, tBase - tH);
+      c.lineTo(x - 1, tBase + 1);
+      c.lineTo(x + tW * 0.5, tBase + 1);
+      c.closePath();
+      c.fill();
+      // top highlight
+      c.fillStyle = 'rgba(255,255,255,0.05)';
+      c.beginPath();
+      c.moveTo(x + tW * 0.5, tBase - tH);
+      c.lineTo(x + tW * 0.42, tBase - tH + 6);
+      c.lineTo(x + tW * 0.5, tBase - tH + 4);
+      c.closePath();
+      c.fill();
+    }
+  }
+
+  function paintRiverbank(c, W, H, waterFrac = 0.66) {
+    // narrow grass strip and a bright foam line right at the waterline
+    const y = H * waterFrac;
     const grad = c.createLinearGradient(0, y - 6, 0, y + 4);
     grad.addColorStop(0, '#3c6b3a');
     grad.addColorStop(1, 'rgba(40, 70, 50, 0)');
     c.fillStyle = grad;
     c.fillRect(0, y - 6, W, 10);
+    // foam crest
+    c.fillStyle = 'rgba(255,255,255,0.55)';
+    c.fillRect(0, y - 1, W, 2);
   }
 
   function paintBaseWater(c, W, H, topY, palette) {
@@ -358,24 +491,27 @@
     c.restore();
   }
 
-  function paintRocksFG(c, W, H, withWaterline) {
-    // distribute foreground rocks deterministically
+  function paintRocksFG(c, W, H, waterFrac = 0.66) {
+    // foreground rocks placed close to the bottom so they don't crowd the kids
     const seed = mulberry32(123);
-    const y0 = H * 0.78;
-    const rocks = 6 + Math.floor(W / 260);
+    const y0 = H * 0.85;
+    const rocks = 5 + Math.floor(W / 280);
     for (let i = 0; i < rocks; i++) {
-      const x = (i / rocks) * W + (seed() - 0.5) * 80 + 40;
-      const y = y0 + (seed() - 0.4) * 60;
-      const r = 28 + seed() * 50;
+      const x = (i / rocks) * W + (seed() - 0.5) * 70 + 50;
+      const y = y0 + (seed() - 0.4) * 50;
+      const r = 30 + seed() * 50;
       drawRock(c, x, y, r);
+      // foam wake around the rock waterline
+      drawRockFoam(c, x, y, r);
     }
-    // submerged dark spots
+    // submerged dark spots — clamp BELOW the waterline so they never appear in air
+    const waterTop = H * waterFrac + 10;
     c.fillStyle = 'rgba(20, 50, 80, 0.45)';
-    for (let i = 0; i < 18; i++) {
+    for (let i = 0; i < 14; i++) {
       const x = seed() * W;
-      const y = H * 0.72 + seed() * (H * 0.22);
+      const y = waterTop + seed() * (H - waterTop) * 0.85;
       c.beginPath();
-      c.ellipse(x, y, 16 + seed() * 26, 5 + seed() * 8, 0, 0, Math.PI * 2);
+      c.ellipse(x, y, 14 + seed() * 22, 4 + seed() * 7, 0, 0, Math.PI * 2);
       c.fill();
     }
   }
@@ -390,16 +526,40 @@
     c.ellipse(x, y, r, r * 0.55, 0, 0, Math.PI * 2);
     c.fill();
     // top highlight
-    c.fillStyle = 'rgba(255,255,255,0.18)';
+    c.fillStyle = 'rgba(255,255,255,0.22)';
     c.beginPath();
     c.ellipse(x - r * 0.3, y - r * 0.22, r * 0.55, r * 0.18, 0, 0, Math.PI * 2);
     c.fill();
+    // crack/texture
+    c.strokeStyle = 'rgba(40,30,20,0.28)';
+    c.lineWidth = 1.2;
+    c.beginPath();
+    c.moveTo(x - r * 0.4, y);
+    c.lineTo(x - r * 0.1, y - r * 0.05);
+    c.lineTo(x + r * 0.2, y + r * 0.04);
+    c.stroke();
     // damp waterline
-    c.strokeStyle = 'rgba(255,255,255,0.4)';
+    c.strokeStyle = 'rgba(255,255,255,0.45)';
     c.lineWidth = 2;
     c.beginPath();
     c.ellipse(x, y + r * 0.42, r * 0.95, r * 0.18, 0, 0, Math.PI * 2);
     c.stroke();
+  }
+
+  function drawRockFoam(c, x, y, r) {
+    // little white wave shapes hugging the upstream side of the rock
+    c.fillStyle = 'rgba(255,255,255,0.7)';
+    c.beginPath();
+    c.ellipse(x - r * 0.55, y + r * 0.46, r * 0.35, 4, 0, 0, Math.PI * 2);
+    c.fill();
+    c.beginPath();
+    c.ellipse(x + r * 0.2, y + r * 0.48, r * 0.5, 4, 0, 0, Math.PI * 2);
+    c.fill();
+    // soft bow wave just upstream
+    c.fillStyle = 'rgba(255,255,255,0.35)';
+    c.beginPath();
+    c.ellipse(x - r * 0.85, y + r * 0.35, r * 0.45, 3, 0, 0, Math.PI * 2);
+    c.fill();
   }
 
   // Pseudo-random
@@ -472,8 +632,10 @@
   // The blond little-buddy. A toddler-ish proportions, big head, big mop of hair.
   function drawBlondKid(cx, cy, opts = {}) {
     const a = (Math.sin(state.t * 0.0018) * 0.04) + (opts.lean || 0);
+    const s = opts.scale || 1;
     ctx.save();
     ctx.translate(cx, cy);
+    ctx.scale(s, s);
     ctx.rotate(a);
 
     // Submerged legs (waders) — only show top portion above water
@@ -516,80 +678,113 @@
 
     // Head
     drawHead({
-      skinTop: '#fadcb6',
-      skinBot: '#e9bd87',
-      cheek: 'rgba(220,110,110,0.55)',
+      skinTop: '#fdddb6',
+      skinBot: '#ecbe89',
+      skinShadow: '#c98d57',
+      cheek: 'rgba(232,118,108,0.55)',
       mouth: '#7a3a26',
+      brow: '#a06820',
+      iris: '#3e6a8c',
     });
 
-    // Hair — golden mop with bangs
+    // Hair — golden mop with bangs (raised so it doesn't cover eyes)
     ctx.fillStyle = '#e9b94a';
     ctx.beginPath();
-    ctx.moveTo(-40, -22);
-    ctx.bezierCurveTo(-44, -52, 30, -56, 40, -22);
-    ctx.bezierCurveTo(40, -10, 32, -2, 22, -6);
-    ctx.bezierCurveTo(12, -16, -10, -16, -22, -6);
-    ctx.bezierCurveTo(-32, -2, -40, -10, -40, -22);
+    ctx.moveTo(-42, -24);
+    ctx.bezierCurveTo(-46, -56, 32, -60, 42, -24);
+    ctx.bezierCurveTo(42, -14, 34, -10, 24, -14);
+    ctx.bezierCurveTo(14, -22, -12, -22, -24, -14);
+    ctx.bezierCurveTo(-34, -10, -42, -14, -42, -24);
     ctx.closePath();
     ctx.fill();
-    // bangs darker layer
+    // darker hair shadow underside
+    ctx.fillStyle = '#b88420';
+    ctx.beginPath();
+    ctx.ellipse(0, -18, 36, 8, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // bangs (raised — does NOT cross the eyes)
     ctx.fillStyle = '#cf9a36';
     ctx.beginPath();
-    ctx.moveTo(-22, -16);
-    ctx.quadraticCurveTo(-2, -32, 22, -14);
-    ctx.lineTo(22, -6);
-    ctx.quadraticCurveTo(2, -18, -22, -6);
+    ctx.moveTo(-26, -22);
+    ctx.quadraticCurveTo(-4, -38, 24, -18);
+    ctx.lineTo(20, -14);
+    ctx.quadraticCurveTo(0, -22, -22, -14);
     ctx.closePath();
     ctx.fill();
     // hair tufts (texture)
-    ctx.fillStyle = '#f3c75f';
-    [[-26,-26],[-12,-32],[2,-34],[16,-32],[28,-26]].forEach(([x,y]) => {
+    ctx.fillStyle = '#f6cf63';
+    [[-28,-30],[-14,-36],[2,-40],[18,-36],[30,-30]].forEach(([x,y]) => {
       ctx.beginPath();
-      ctx.ellipse(x, y, 6, 4, 0, 0, Math.PI * 2);
+      ctx.ellipse(x, y, 7, 4, 0, 0, Math.PI * 2);
       ctx.fill();
     });
+    // tiny side curl
+    ctx.fillStyle = '#cf9a36';
+    ctx.beginPath(); ctx.arc(-36, -14, 7, 0, Math.PI * 2); ctx.fill();
 
-    // Holding net (one arm out)
+    // Visible right arm (sleeve) holding the net
     if (opts.holdNet) {
-      // hand
-      ctx.fillStyle = '#fadcb6';
-      ctx.beginPath();
-      ctx.arc(56, 56, 9, 0, Math.PI * 2);
-      ctx.fill();
-      // net handle
-      ctx.strokeStyle = '#a8651b';
+      // sleeve from shoulder to hand
+      ctx.strokeStyle = '#9a6c2e';
       ctx.lineCap = 'round';
+      ctx.lineWidth = 22;
+      ctx.beginPath();
+      ctx.moveTo(36, 38);    // shoulder
+      ctx.quadraticCurveTo(58, 44, 70, 64);  // bent forearm
+      ctx.stroke();
+      // sleeve highlight
+      ctx.strokeStyle = '#c69460';
       ctx.lineWidth = 6;
       ctx.beginPath();
-      ctx.moveTo(56, 56);
-      ctx.lineTo(140, 110);
+      ctx.moveTo(40, 36);
+      ctx.quadraticCurveTo(60, 42, 70, 60);
       ctx.stroke();
-      // net hoop
-      ctx.strokeStyle = '#3d5a78';
-      ctx.lineWidth = 4;
+      // hand (skin)
+      ctx.fillStyle = '#fadcb6';
+      ctx.beginPath(); ctx.arc(72, 66, 10, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#d8a674';
+      ctx.beginPath(); ctx.arc(74, 70, 5, 0, Math.PI * 2); ctx.fill();
+
+      // Net handle continues from hand
+      ctx.strokeStyle = '#8a4d18';
+      ctx.lineCap = 'round';
+      ctx.lineWidth = 7;
       ctx.beginPath();
-      ctx.arc(168, 132, 26, 0, Math.PI * 2);
+      ctx.moveTo(72, 66);
+      ctx.lineTo(146, 122);
       ctx.stroke();
-      // net mesh
-      ctx.fillStyle = 'rgba(255,255,255,0.3)';
-      ctx.beginPath();
-      ctx.arc(168, 132, 24, 0, Math.PI * 2);
-      ctx.fill();
+      // grip wrap
+      ctx.strokeStyle = '#3d2812';
+      ctx.lineWidth = 3;
+      for (let i = 0; i < 4; i++) {
+        const t = 0.05 + i * 0.05;
+        const x = 72 + (146 - 72) * t;
+        const y = 66 + (122 - 66) * t;
+        ctx.beginPath();
+        ctx.moveTo(x - 4, y - 3);
+        ctx.lineTo(x + 4, y + 3);
+        ctx.stroke();
+      }
+      // net hoop with thickness
+      ctx.strokeStyle = '#2b3f55';
+      ctx.lineWidth = 6;
+      ctx.beginPath(); ctx.arc(170, 142, 28, 0, Math.PI * 2); ctx.stroke();
+      // net inside (slightly translucent)
+      ctx.fillStyle = 'rgba(180, 210, 230, 0.45)';
+      ctx.beginPath(); ctx.arc(170, 142, 26, 0, Math.PI * 2); ctx.fill();
       // mesh weave
+      ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+      ctx.lineWidth = 0.8;
+      for (let i = -24; i <= 24; i += 5) {
+        ctx.beginPath(); ctx.moveTo(170 + i, 142 - 24); ctx.lineTo(170 + i, 142 + 24); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(170 - 24, 142 + i); ctx.lineTo(170 + 24, 142 + i); ctx.stroke();
+      }
+      // hoop top highlight
       ctx.strokeStyle = 'rgba(255,255,255,0.6)';
-      ctx.lineWidth = 0.7;
-      for (let i = -22; i <= 22; i += 6) {
-        ctx.beginPath();
-        ctx.moveTo(168 + i, 132 - 22);
-        ctx.lineTo(168 + i, 132 + 22);
-        ctx.stroke();
-      }
-      for (let i = -22; i <= 22; i += 6) {
-        ctx.beginPath();
-        ctx.moveTo(168 - 22, 132 + i);
-        ctx.lineTo(168 + 22, 132 + i);
-        ctx.stroke();
-      }
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.arc(170, 142, 28, Math.PI * 1.2, Math.PI * 1.8);
+      ctx.stroke();
     }
 
     if (opts.holdPaddle) drawPaddle(opts.paddlePhase || 0);
@@ -598,8 +793,10 @@
 
   function drawBrunetteKid(cx, cy, opts = {}) {
     const a = (Math.sin(state.t * 0.0014 + 1) * 0.03) + (opts.lean || 0);
+    const s = opts.scale || 1;
     ctx.save();
     ctx.translate(cx, cy);
+    ctx.scale(s, s);
     ctx.rotate(a);
 
     if (!opts.seated) {
@@ -638,75 +835,135 @@
 
     // Head
     drawHead({
-      skinTop: '#f0c79b',
-      skinBot: '#d4a16f',
-      cheek: 'rgba(180,90,80,0.45)',
+      skinTop: '#f3cc9f',
+      skinBot: '#d6a26f',
+      skinShadow: '#a9744a',
+      cheek: 'rgba(190,98,82,0.5)',
       mouth: '#6a3422',
+      brow: '#3a2412',
+      iris: '#5a3a22',
     });
 
-    // Curly brown hair
-    ctx.fillStyle = '#5a3920';
-    const curls = [
-      [-32,-22,16],[-22,-32,18],[-8,-36,16],[8,-36,16],[22,-32,18],[34,-22,16],
-      [-30,-12,14],[30,-12,14],
+    // Curly brown hair — tighter ring of curls AROUND the head, NOT over the eyes
+    ctx.fillStyle = '#3e2716';
+    const outerCurls = [
+      [-36,-26,14],[-26,-36,17],[-12,-42,17],[6,-42,17],[22,-38,17],[36,-28,14],
+      [-40,-12,12],[40,-12,12],
     ];
-    curls.forEach(([x,y,r]) => {
+    outerCurls.forEach(([x,y,r]) => {
       ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
     });
-    // bangs
-    ctx.fillStyle = '#4a2e18';
+    // lighter highlights on top curls
+    ctx.fillStyle = '#5a3920';
+    [[-22,-32,8],[-6,-40,9],[12,-38,8],[26,-32,8]].forEach(([x,y,r]) => {
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+    });
+    // bangs — placed up at the forehead, NOT over the eyes
+    ctx.fillStyle = '#2c1a0c';
     ctx.beginPath();
-    ctx.moveTo(-22, -10);
-    ctx.quadraticCurveTo(-4, -24, 22, -10);
-    ctx.lineTo(20, -2);
-    ctx.quadraticCurveTo(0, -12, -22, -2);
+    ctx.moveTo(-26, -22);
+    ctx.quadraticCurveTo(-2, -34, 26, -22);
+    ctx.quadraticCurveTo(20, -16, 8, -18);
+    ctx.quadraticCurveTo(-8, -16, -26, -22);
     ctx.closePath();
     ctx.fill();
-    // freckles
-    ctx.fillStyle = '#a76844';
-    [[-9,4],[-3,6],[6,4],[12,6],[-14,8],[15,8]].forEach(([x,y])=>{
+    // freckles across the bridge (small, subtle)
+    ctx.fillStyle = '#8a4f30';
+    [[-10,3],[-4,5],[5,3],[11,5],[-14,7],[15,7]].forEach(([x,y])=>{
       ctx.beginPath(); ctx.arc(x, y, 1.2, 0, Math.PI*2); ctx.fill();
     });
 
-    // Rod arm + rod tip lives in `opts.rodTip` (world coords relative to body)
+    // Visible rod arm (sleeve from shoulder, hoodie cuff, glove)
     const rodAngle = opts.rodAngle ?? -0.32;
-    ctx.save();
-    ctx.translate(40, 50);
-    ctx.rotate(rodAngle);
-    // glove (red/orange)
-    ctx.fillStyle = '#c1442a';
-    rrect(-7, -14, 22, 24, 5);
-    ctx.fillStyle = '#7a2a18';
-    rrect(-7, -14, 22, 6, 3);
-    // rod
-    ctx.strokeStyle = '#161616';
+    // sleeve under hoodie (black)
+    ctx.strokeStyle = '#262d36';
     ctx.lineCap = 'round';
-    ctx.lineWidth = 4;
+    ctx.lineWidth = 24;
+    ctx.beginPath();
+    ctx.moveTo(40, 40);
+    ctx.quadraticCurveTo(70, 40, 80, 56);
+    ctx.stroke();
+    // vest sleeve overlay (the vest is sleeveless but the upper arm shows the vest edge)
+    ctx.strokeStyle = '#7a6c44';
+    ctx.lineWidth = 8;
+    ctx.beginPath();
+    ctx.moveTo(40, 36);
+    ctx.lineTo(50, 40);
+    ctx.stroke();
+
+    ctx.save();
+    ctx.translate(80, 56);
+    ctx.rotate(rodAngle);
+    // hoodie cuff
+    ctx.fillStyle = '#1d242c';
+    rrect(-10, -16, 20, 12, 3);
+    // glove (red/orange) with knuckle band
+    ctx.fillStyle = '#c1442a';
+    rrect(-9, -14, 24, 26, 6);
+    ctx.fillStyle = '#7a2a18';
+    rrect(-9, -14, 24, 6, 3);
+    ctx.fillStyle = '#e85d3a';
+    rrect(-9, -2, 24, 4, 2);
+    // little finger lines
+    ctx.strokeStyle = '#7a2a18';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 3; i++) {
+      const x = -7 + i * 7;
+      ctx.beginPath(); ctx.moveTo(x, 6); ctx.lineTo(x, 12); ctx.stroke();
+    }
+    // rod
+    ctx.strokeStyle = '#0e0e0e';
+    ctx.lineCap = 'round';
+    ctx.lineWidth = 5;
     ctx.beginPath();
     ctx.moveTo(8, -2);
-    ctx.quadraticCurveTo(140, -36, 240, -16);
+    ctx.quadraticCurveTo(120, -34, 230, -10);
     ctx.stroke();
+    // rod highlight
+    ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(20, -6);
+    ctx.quadraticCurveTo(120, -36, 220, -14);
+    ctx.stroke();
+    // line guides
+    ctx.fillStyle = '#222';
+    [0.25, 0.5, 0.75].forEach(t => {
+      const x = 8 + (230 - 8) * t;
+      const y = -2 + (-10 - -2) * t - 20 * t * (1 - t);
+      ctx.beginPath(); ctx.arc(x, y - 2, 2, 0, Math.PI * 2); ctx.fill();
+    });
     // rod tip mark
     ctx.fillStyle = '#161616';
-    ctx.beginPath(); ctx.arc(240, -16, 2.8, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(230, -10, 3, 0, Math.PI * 2); ctx.fill();
     // reel
-    const reelG = ctx.createRadialGradient(20, 8, 1, 20, 8, 11);
-    reelG.addColorStop(0, '#c8c8c8');
-    reelG.addColorStop(1, '#5a5a5a');
+    const reelG = ctx.createRadialGradient(20, 10, 1, 20, 10, 13);
+    reelG.addColorStop(0, '#dadada');
+    reelG.addColorStop(1, '#454545');
     ctx.fillStyle = reelG;
-    ctx.beginPath(); ctx.arc(20, 8, 11, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = '#222'; ctx.lineWidth = 1.6;
-    ctx.beginPath(); ctx.arc(20, 8, 11, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(20, 10, 13, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 1.8;
+    ctx.beginPath(); ctx.arc(20, 10, 13, 0, Math.PI * 2); ctx.stroke();
+    // reel inner ring
+    ctx.strokeStyle = '#888';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(20, 10, 8, 0, Math.PI * 2); ctx.stroke();
     // reel handle
-    ctx.fillStyle = '#161616';
-    ctx.beginPath(); ctx.arc(20, 8, 3, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#1a1a1a';
+    ctx.beginPath(); ctx.arc(20, 10, 3.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(28, 4, 2, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
 
-    // Save the world-space rod tip so the line can attach
-    const rodTipLocal = transformPoint(40 + 240 * Math.cos(rodAngle) - (-16) * Math.sin(rodAngle),
-                                       50 + 240 * Math.sin(rodAngle) + (-16) * Math.cos(rodAngle));
-    state.line.tipX = rodTipLocal.x;
-    state.line.tipY = rodTipLocal.y;
+    // Save the world-space rod tip so the line can attach.
+    // Rod tip is at local (230, -10) inside the (80, 56) + rotate(rodAngle) frame.
+    // Skip when drawing as a reflection — we don't want to overwrite the real tip.
+    if (!opts._ghost) {
+      const tipBodyX = 80 + 230 * Math.cos(rodAngle) - (-10) * Math.sin(rodAngle);
+      const tipBodyY = 56 + 230 * Math.sin(rodAngle) + (-10) * Math.cos(rodAngle);
+      const rodTipLocal = transformPoint(tipBodyX, tipBodyY);
+      state.line.tipX = rodTipLocal.x;
+      state.line.tipY = rodTipLocal.y;
+    }
 
     if (opts.holdPaddle) drawPaddle(opts.paddlePhase || 0);
     ctx.restore();
@@ -723,55 +980,106 @@
     return { x, y };
   }
 
+  // p: { skinTop, skinBot, skinShadow, cheek, mouth, brow }
   function drawHead(p) {
-    // neck
+    // Neck
     ctx.fillStyle = p.skinBot;
-    rrect(-12, 14, 24, 14, 4);
-    // head shape (slightly pear)
-    const hg = ctx.createLinearGradient(0, -42, 0, 28);
+    rrect(-13, 14, 26, 16, 5);
+    // Neck shadow
+    ctx.fillStyle = p.skinShadow;
+    ctx.fillRect(-13, 14, 26, 4);
+
+    // Head — slightly tall, painterly
+    const hg = ctx.createRadialGradient(-6, -16, 6, 0, -4, 50);
     hg.addColorStop(0, p.skinTop);
     hg.addColorStop(1, p.skinBot);
     ctx.fillStyle = hg;
     ctx.beginPath();
-    ctx.ellipse(0, -8, 38, 42, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, -8, 40, 45, 0, 0, Math.PI * 2);
     ctx.fill();
-    // ear hint
+
+    // Side shading on the right (subtle volume)
+    ctx.save();
+    ctx.beginPath();
+    ctx.ellipse(0, -8, 40, 45, 0, 0, Math.PI * 2);
+    ctx.clip();
+    const sg = ctx.createLinearGradient(10, 0, 40, 0);
+    sg.addColorStop(0, 'rgba(0,0,0,0)');
+    sg.addColorStop(1, p.skinShadow + (typeof p.skinShadow === 'string' && p.skinShadow.length === 7 ? '88' : ''));
+    ctx.fillStyle = sg;
+    ctx.fillRect(0, -56, 50, 100);
+    ctx.restore();
+
+    // Ears
     ctx.fillStyle = p.skinBot;
-    ctx.beginPath();
-    ctx.ellipse(-37, -4, 5, 8, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(37, -4, 5, 8, 0, 0, Math.PI * 2);
-    ctx.fill();
-    // cheeks
+    ctx.beginPath(); ctx.ellipse(-39, -4, 6, 10, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(39, -4, 6, 10, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = p.skinShadow;
+    ctx.beginPath(); ctx.ellipse(-39, -2, 3, 5, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(39, -2, 3, 5, 0, 0, Math.PI * 2); ctx.fill();
+
+    // Cheeks
     ctx.fillStyle = p.cheek;
-    ctx.beginPath(); ctx.arc(-20, 4, 6, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(20, 4, 6, 0, Math.PI * 2); ctx.fill();
-    // eyes — whites + pupil + highlight
-    ctx.fillStyle = '#fff';
-    ctx.beginPath(); ctx.ellipse(-12, -6, 5, 6, 0, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(12, -6, 5, 6, 0, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle = '#1c2a36';
-    ctx.beginPath(); ctx.arc(-11, -5, 3, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(13, -5, 3, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#fff';
-    ctx.beginPath(); ctx.arc(-10, -7, 1.1, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(14, -7, 1.1, 0, Math.PI*2); ctx.fill();
-    // nose hint
-    ctx.fillStyle = 'rgba(170, 110, 80, 0.55)';
-    ctx.beginPath(); ctx.ellipse(0, 4, 2.5, 1.8, 0, 0, Math.PI * 2); ctx.fill();
-    // smile
-    ctx.strokeStyle = p.mouth;
-    ctx.lineWidth = 2.4;
+    ctx.beginPath(); ctx.arc(-22, 6, 7, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(22, 6, 7, 0, Math.PI * 2); ctx.fill();
+
+    // Eyebrows (drawn before eyes so eyes pop above)
+    ctx.strokeStyle = p.brow;
+    ctx.lineWidth = 3;
     ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.arc(0, 10, 8, 0.18 * Math.PI, 0.82 * Math.PI);
+    ctx.moveTo(-18, -16); ctx.quadraticCurveTo(-12, -19, -6, -16);
     ctx.stroke();
-    // teeth hint
-    ctx.fillStyle = '#fff';
     ctx.beginPath();
-    ctx.ellipse(0, 12, 4, 1.8, 0, 0, Math.PI * 2);
+    ctx.moveTo(6, -16); ctx.quadraticCurveTo(12, -19, 18, -16);
+    ctx.stroke();
+
+    // Eyes — bigger whites so the sparkle reads on mobile
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.ellipse(-12, -6, 7, 8, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(12, -6, 7, 8, 0, 0, Math.PI*2); ctx.fill();
+    // iris (looking slightly to the right toward fish)
+    ctx.fillStyle = p.iris || '#3a5a7a';
+    ctx.beginPath(); ctx.arc(-11, -5, 4.2, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(13, -5, 4.2, 0, Math.PI * 2); ctx.fill();
+    // pupil
+    ctx.fillStyle = '#0c1822';
+    ctx.beginPath(); ctx.arc(-11, -5, 2.4, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(13, -5, 2.4, 0, Math.PI * 2); ctx.fill();
+    // catchlight
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(-9.5, -7, 1.4, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(14.5, -7, 1.4, 0, Math.PI*2); ctx.fill();
+    // tiny secondary glint
+    ctx.globalAlpha = 0.6;
+    ctx.beginPath(); ctx.arc(-13, -3, 0.7, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(11, -3, 0.7, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // Nose
+    ctx.fillStyle = p.skinShadow;
+    ctx.beginPath();
+    ctx.moveTo(-3, 2);
+    ctx.quadraticCurveTo(0, 8, 3, 2);
+    ctx.quadraticCurveTo(0, 4, -3, 2);
+    ctx.closePath();
     ctx.fill();
+
+    // Smile — open with teeth + tongue
+    ctx.fillStyle = '#5a2014';
+    ctx.beginPath();
+    ctx.ellipse(0, 14, 9, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(-7, 11, 14, 3);
+    ctx.fillStyle = '#e07060';
+    ctx.beginPath(); ctx.ellipse(0, 16, 5, 2, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = p.mouth;
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.arc(0, 12, 9, 0.18 * Math.PI, 0.82 * Math.PI);
+    ctx.stroke();
   }
 
   function drawPaddle(phase) {
@@ -1319,13 +1627,20 @@
     if (state.scene === 'stream') {
       drawWater(W, H);
       drawSparkles();
-      // Two kids wading. Brunette on the right (rod tip is captured into state.line.tipX/Y).
-      drawBlondKid(W * 0.42, H * 0.5, { holdNet: true });
-      drawBrunetteKid(W * 0.62, H * 0.5, { rodAngle: -0.32 + Math.sin(state.t * 0.0009) * 0.05 });
+      // Reflections drawn first (under the kids), then the kids on top.
+      const cy = H * COMP.stream.kidY;
+      const blondX = W * 0.42, brunetteX = W * 0.6;
+      drawCharacterReflection(blondX, cy, COMP.stream.kidScale, 'blond');
+      drawCharacterReflection(brunetteX, cy, COMP.stream.kidScale, 'brunette');
+      drawBlondKid(blondX, cy, { holdNet: true, scale: COMP.stream.kidScale });
+      drawBrunetteKid(brunetteX, cy, {
+        rodAngle: -0.32 + Math.sin(state.t * 0.0009) * 0.05,
+        scale: COMP.stream.kidScale,
+      });
     } else {
       drawWater(W, H);
       drawSparkles();
-      drawKayak(W * 0.5, H * 0.62);
+      drawKayak(W * 0.5, H * COMP.kayak.kayakY);
     }
 
     // 3) Fish, line, effects
@@ -1334,6 +1649,20 @@
     drawSplashes();
     drawBubbles();
     drawFloats();
+  }
+
+  // Soft, semi-transparent flipped silhouette to suggest a water reflection.
+  function drawCharacterReflection(cx, cy, scale, who) {
+    const waterY = state.H * COMP.stream.waterY;
+    ctx.save();
+    ctx.translate(cx, waterY);
+    ctx.scale(scale, -scale * 0.35);
+    ctx.translate(0, -(waterY - cy) / scale);
+    ctx.globalAlpha = 0.22;
+    ctx.filter = 'blur(2px)';
+    if (who === 'blond') drawBlondKid(0, 0, { holdNet: false, scale: 1, _ghost: true });
+    else drawBrunetteKid(0, 0, { rodAngle: -0.32, scale: 1, _ghost: true });
+    ctx.restore();
   }
   requestAnimationFrame(loop);
 
