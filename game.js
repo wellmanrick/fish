@@ -123,9 +123,11 @@
 
   function paintStreamBg(c, W, H) {
     paintSky(c, W, H);
-    paintSun(c, W, H, 0.78);
-    paintClouds(c, W, H, 6);
+    paintSunWithRays(c, W, H, 0.78);
+    paintClouds(c, W, H, 7);
+    paintAtmosphericHaze(c, W, H, H * 0.42);
     paintFarMountains(c, W, H);
+    paintAtmosphericHaze(c, W, H, H * 0.5, 0.18);
     paintMidHills(c, W, H);
     paintPineForest(c, W, H, H * 0.58);
     paintRiverbank(c, W, H);
@@ -134,79 +136,121 @@
   }
 
   function paintKayakBg(c, W, H) {
-    paintSky(c, W, H, '#bce0f5', '#8fbfdf');
-    paintSun(c, W, H, 0.72);
-    paintClouds(c, W, H, 5);
+    paintSky(c, W, H, '#cce6f5', '#8fbfdf');
+    paintSunWithRays(c, W, H, 0.72);
+    paintClouds(c, W, H, 6);
+    paintAtmosphericHaze(c, W, H, H * 0.42);
     paintFarMountains(c, W, H, '#7d9cb8', '#5d7a96');
+    paintAtmosphericHaze(c, W, H, H * 0.5, 0.18);
     paintMidHills(c, W, H, '#3d6a4a', '#2e5538');
     paintPineForest(c, W, H, H * 0.6, true);
     paintBaseWater(c, W, H, H * 0.64, ['#74c4e6', '#2a78a8', '#0e3d68']);
     paintLakeShoreReflections(c, W, H);
   }
 
-  function paintSky(c, W, H, top = '#cbe6ff', mid = '#8fc8e8') {
+  function paintSky(c, W, H, top = '#d8ecff', mid = '#8fc8e8') {
+    // 3-stop gradient with a hint of warm horizon
     const g = c.createLinearGradient(0, 0, 0, H * 0.7);
     g.addColorStop(0, top);
-    g.addColorStop(1, mid);
+    g.addColorStop(0.7, mid);
+    g.addColorStop(1, '#bcdcef');
     c.fillStyle = g;
     c.fillRect(0, 0, W, H * 0.7);
   }
 
-  function paintSun(c, W, H, xFrac = 0.7) {
+  function paintSunWithRays(c, W, H, xFrac = 0.7) {
     const cx = W * xFrac;
-    const cy = H * 0.18;
-    const r = Math.min(W, H) * 0.18;
-    const grad = c.createRadialGradient(cx, cy, r * 0.05, cx, cy, r);
-    grad.addColorStop(0, 'rgba(255, 252, 220, 0.95)');
-    grad.addColorStop(0.4, 'rgba(255, 240, 180, 0.45)');
-    grad.addColorStop(1, 'rgba(255, 220, 150, 0)');
-    c.fillStyle = grad;
+    const cy = H * 0.16;
+    const r = Math.min(W, H) * 0.16;
+
+    // Outer glow
+    const glow = c.createRadialGradient(cx, cy, r * 0.05, cx, cy, r * 1.6);
+    glow.addColorStop(0, 'rgba(255, 250, 220, 0.85)');
+    glow.addColorStop(0.35, 'rgba(255, 230, 170, 0.40)');
+    glow.addColorStop(1, 'rgba(255, 200, 140, 0)');
+    c.fillStyle = glow;
     c.beginPath();
-    c.arc(cx, cy, r, 0, Math.PI * 2);
+    c.arc(cx, cy, r * 1.6, 0, Math.PI * 2);
     c.fill();
-    // Sun core
-    c.fillStyle = 'rgba(255, 250, 220, 0.9)';
+
+    // Sun rays (subtle wedges)
+    c.save();
+    c.translate(cx, cy);
+    c.globalCompositeOperation = 'lighter';
+    const rayGrad = c.createRadialGradient(0, 0, r * 0.2, 0, 0, r * 4);
+    rayGrad.addColorStop(0, 'rgba(255, 245, 200, 0.32)');
+    rayGrad.addColorStop(1, 'rgba(255, 245, 200, 0)');
+    c.fillStyle = rayGrad;
+    for (let i = 0; i < 6; i++) {
+      c.save();
+      c.rotate((i / 6) * Math.PI * 2 + 0.3);
+      c.beginPath();
+      c.moveTo(0, 0);
+      c.lineTo(r * 4, -r * 0.18);
+      c.lineTo(r * 4, r * 0.18);
+      c.closePath();
+      c.fill();
+      c.restore();
+    }
+    c.restore();
+
+    // Sun disc
+    c.fillStyle = 'rgba(255, 250, 220, 0.95)';
     c.beginPath();
-    c.arc(cx, cy, r * 0.18, 0, Math.PI * 2);
+    c.arc(cx, cy, r * 0.32, 0, Math.PI * 2);
     c.fill();
+  }
+
+  function paintAtmosphericHaze(c, W, H, y, alpha = 0.32) {
+    // Soft horizontal haze band that sits in front of distant objects
+    const g = c.createLinearGradient(0, y - 30, 0, y + 50);
+    g.addColorStop(0, `rgba(220, 230, 240, 0)`);
+    g.addColorStop(0.5, `rgba(220, 230, 240, ${alpha})`);
+    g.addColorStop(1, `rgba(220, 230, 240, 0)`);
+    c.fillStyle = g;
+    c.fillRect(0, y - 30, W, 80);
   }
 
   function paintClouds(c, W, H, n = 6) {
     const seed = mulberry32(13);
     for (let i = 0; i < n; i++) {
       const x = seed() * W;
-      const y = H * (0.06 + seed() * 0.18);
-      const s = 0.7 + seed() * 0.9;
-      drawCloudShape(c, x, y, s);
+      const y = H * (0.04 + seed() * 0.22);
+      const s = 0.35 + seed() * 0.55;  // smaller and wispier
+      const tone = 0.85 + seed() * 0.15;
+      drawCloudShape(c, x, y, s, tone);
     }
   }
 
-  function drawCloudShape(c, x, y, s) {
+  function drawCloudShape(c, x, y, s, tone = 0.95) {
     c.save();
     c.translate(x, y);
     c.scale(s, s);
-    // soft underside shadow
-    c.fillStyle = 'rgba(150, 170, 195, 0.35)';
+    // long, soft underside shadow
+    c.fillStyle = 'rgba(150, 170, 195, 0.18)';
     c.beginPath();
-    c.ellipse(0, 12, 90, 14, 0, 0, Math.PI * 2);
+    c.ellipse(0, 14, 110, 8, 0, 0, Math.PI * 2);
     c.fill();
-    // body
-    c.fillStyle = 'rgba(255, 255, 255, 0.95)';
-    [
-      [-50, 4, 30],
-      [-20, -10, 36],
-      [10, -14, 30],
-      [40, -6, 32],
-      [60, 8, 26],
-    ].forEach(([cx, cy, r]) => {
+    // wispy puffs (more, smaller, varied)
+    const puffs = [
+      [-60, 4, 22], [-40, -4, 26], [-20, -8, 24], [0, -10, 22],
+      [22, -6, 24], [44, -2, 20], [60, 4, 16],
+    ];
+    c.fillStyle = `rgba(255, 255, 255, ${tone})`;
+    puffs.forEach(([cx, cy, r]) => {
       c.beginPath();
       c.arc(cx, cy, r, 0, Math.PI * 2);
       c.fill();
     });
-    // highlight
-    c.fillStyle = 'rgba(255,255,255,0.6)';
+    // top wisp highlight
+    c.fillStyle = 'rgba(255,255,255,0.45)';
     c.beginPath();
-    c.ellipse(-10, -16, 30, 6, 0, 0, Math.PI * 2);
+    c.ellipse(-10, -14, 38, 4, 0, 0, Math.PI * 2);
+    c.fill();
+    // stretched whisp tail
+    c.fillStyle = `rgba(255,255,255,${tone * 0.7})`;
+    c.beginPath();
+    c.ellipse(70, 6, 30, 4, 0, 0, Math.PI * 2);
     c.fill();
     c.restore();
   }
