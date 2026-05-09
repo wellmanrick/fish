@@ -2,37 +2,52 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+<meta name="theme-color" content="#1d2b36" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <title>Fishing with Friends</title>
 <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <div id="app">
     <header class="hud">
-      <div class="hud-left">
+      <div class="hud-row top">
         <span class="badge">🎣 Fishing with Friends</span>
+        <span class="scene-pill" id="scene-label">Stream</span>
       </div>
-      <div class="hud-center">
-        <span id="scene-label">Stream</span>
-      </div>
-      <div class="hud-right">
-        <span class="stat">Caught: <b id="caught">0</b></span>
-        <span class="stat">Score: <b id="score">0</b></span>
-        <span class="stat">Time: <b id="time">60</b></span>
+      <div class="hud-row stats">
+        <span class="stat" title="Caught">
+          <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M16 6c-3.5 0-7 2-9 5l-5-1 2 4-2 4 5-1c2 3 5.5 5 9 5 4 0 7-3 7-8s-3-8-7-8zm-1 6.5a1.2 1.2 0 1 1 0 2.4 1.2 1.2 0 0 1 0-2.4z"/></svg>
+          <b id="caught">0</b>
+        </span>
+        <span class="stat" title="Score">
+          <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M12 2l3 6.5 7 1-5.2 4.8L18 21l-6-3.4L6 21l1.2-6.7L2 9.5l7-1z"/></svg>
+          <b id="score">0</b>
+        </span>
+        <span class="stat" title="Time">
+          <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M12 22a9 9 0 1 1 0-18 9 9 0 0 1 0 18zm.7-9.4V7h-1.4v6.4l5 3 .7-1.2-4.3-2.6z"/></svg>
+          <b id="time">60</b>
+        </span>
       </div>
     </header>
 
     <main class="stage">
-      <canvas id="game" width="1200" height="720"></canvas>
+      <canvas id="game"></canvas>
+
+      <div id="bite-indicator" class="bite hidden">
+        <span>Bite!</span>
+      </div>
 
       <div id="start-overlay" class="overlay">
         <div class="card">
+          <div class="title-mark">🎣</div>
           <h1>Fishing with Friends</h1>
-          <p>Help the two best buddies catch as many fish as they can!</p>
+          <p class="lead">Cast your line, watch the bobber, and snap the rod when a fish bites!</p>
           <ul class="how">
-            <li><b>Click / Tap / Space</b> — cast or hook a fish</li>
-            <li><b>1</b> — Stream scene · <b>2</b> — Kayak scene</li>
-            <li>Bigger fish = more points. Don't miss the bite!</li>
+            <li><b>Tap the big button</b> to cast and to set the hook</li>
+            <li>Watch for the <b>!</b> and the bobber dipping</li>
+            <li>Bigger fish = more points · golden fish are rare</li>
           </ul>
           <button id="start-btn" class="primary">Start Fishing</button>
         </div>
@@ -40,18 +55,31 @@
 
       <div id="end-overlay" class="overlay hidden">
         <div class="card">
-          <h2>Time's up!</h2>
+          <div class="title-mark">🏆</div>
+          <h2>Nice fishing!</h2>
           <p>You caught <b id="final-caught">0</b> fish for <b id="final-score">0</b> points.</p>
+          <p class="rank" id="final-rank"></p>
           <button id="restart-btn" class="primary">Play again</button>
         </div>
       </div>
     </main>
 
-    <footer class="foot">
-      <button class="scene-btn" data-scene="stream">🏞️ Stream</button>
-      <button class="scene-btn" data-scene="kayak">🛶 Kayak</button>
-      <span class="hint">Press space when the bobber dips!</span>
-    </footer>
+    <nav class="action-bar">
+      <button class="scene-btn" data-scene="stream" aria-label="Stream scene">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M3 17c2-2 4-2 6 0s4 2 6 0 4-2 6 0v3H3zM6 12l3-7 3 7 3-5 3 5z"/></svg>
+        <span>Stream</span>
+      </button>
+
+      <button id="cast-btn" class="cast" aria-label="Cast or hook">
+        <span class="cast-label">CAST</span>
+        <span class="cast-sub">tap when fish bites</span>
+      </button>
+
+      <button class="scene-btn" data-scene="kayak" aria-label="Kayak scene">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M2 14c4-2 8-2 10 0s6 2 10 0v3c-4 2-8 2-10 0s-6-2-10 0zm4-7l1-3 4 3 4-3 1 3z"/></svg>
+        <span>Kayak</span>
+      </button>
+    </nav>
   </div>
 
   <script src="game.js"></script>
