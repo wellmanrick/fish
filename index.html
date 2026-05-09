@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Fishing with Friends</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="hud">
+      <div class="hud-left">
+        <span class="badge">🎣 Fishing with Friends</span>
+      </div>
+      <div class="hud-center">
+        <span id="scene-label">Stream</span>
+      </div>
+      <div class="hud-right">
+        <span class="stat">Caught: <b id="caught">0</b></span>
+        <span class="stat">Score: <b id="score">0</b></span>
+        <span class="stat">Time: <b id="time">60</b></span>
+      </div>
+    </header>
+
+    <main class="stage">
+      <canvas id="game" width="1200" height="720"></canvas>
+
+      <div id="start-overlay" class="overlay">
+        <div class="card">
+          <h1>Fishing with Friends</h1>
+          <p>Help the two best buddies catch as many fish as they can!</p>
+          <ul class="how">
+            <li><b>Click / Tap / Space</b> — cast or hook a fish</li>
+            <li><b>1</b> — Stream scene · <b>2</b> — Kayak scene</li>
+            <li>Bigger fish = more points. Don't miss the bite!</li>
+          </ul>
+          <button id="start-btn" class="primary">Start Fishing</button>
+        </div>
+      </div>
+
+      <div id="end-overlay" class="overlay hidden">
+        <div class="card">
+          <h2>Time's up!</h2>
+          <p>You caught <b id="final-caught">0</b> fish for <b id="final-score">0</b> points.</p>
+          <button id="restart-btn" class="primary">Play again</button>
+        </div>
+      </div>
+    </main>
+
+    <footer class="foot">
+      <button class="scene-btn" data-scene="stream">🏞️ Stream</button>
+      <button class="scene-btn" data-scene="kayak">🛶 Kayak</button>
+      <span class="hint">Press space when the bobber dips!</span>
+    </footer>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
