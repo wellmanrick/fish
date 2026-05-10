@@ -1,0 +1,111 @@
+[gd_scene load_steps=11 format=3 uid="uid://b00000000fish"]
+
+[ext_resource type="Script" path="res://src/scenes/fishing/fishing.gd" id="1_fishing"]
+[ext_resource type="PackedScene" uid="uid://b00000000rod0" path="res://src/scenes/fishing/rod/rod.tscn" id="2_rod"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProcSky_main"]
+sky_top_color = Color(0.45, 0.72, 0.92, 1)
+sky_horizon_color = Color(0.86, 0.88, 0.82, 1)
+ground_horizon_color = Color(0.65, 0.6, 0.5, 1)
+ground_bottom_color = Color(0.3, 0.3, 0.3, 1)
+sun_angle_max = 30.0
+sun_curve = 0.15
+
+[sub_resource type="Sky" id="Sky_main"]
+sky_material = SubResource("ProcSky_main")
+
+[sub_resource type="Environment" id="Env_main"]
+background_mode = 2
+sky = SubResource("Sky_main")
+ambient_light_source = 3
+ambient_light_color = Color(0.65, 0.75, 0.9, 1)
+ambient_light_energy = 0.4
+tonemap_mode = 2
+glow_enabled = true
+glow_intensity = 0.4
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_water"]
+size = Vector2(120, 120)
+subdivide_width = 8
+subdivide_depth = 8
+
+[sub_resource type="StandardMaterial3D" id="Mat_water"]
+albedo_color = Color(0.13, 0.42, 0.62, 1)
+metallic = 0.0
+roughness = 0.25
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_bank"]
+size = Vector2(40, 8)
+
+[sub_resource type="StandardMaterial3D" id="Mat_bank"]
+albedo_color = Color(0.32, 0.42, 0.22, 1)
+roughness = 0.95
+
+[sub_resource type="LabelSettings" id="LabelSettings_debug"]
+font_size = 16
+font_color = Color(0.95, 0.97, 1, 1)
+outline_size = 2
+outline_color = Color(0, 0, 0, 0.8)
+
+[node name="Fishing" type="Node3D"]
+script = ExtResource("1_fishing")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Env_main")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.7660444, 0.4924039, -0.4131759, 0, 0.6427876, 0.7660444, 0.6427876, -0.5868241, 0.4924039, 0, 12, 0)
+light_energy = 1.2
+shadow_enabled = true
+
+[node name="WaterPlane" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -25)
+mesh = SubResource("PlaneMesh_water")
+surface_material_override/0 = SubResource("Mat_water")
+
+[node name="Bank" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.25, 8)
+mesh = SubResource("PlaneMesh_bank")
+surface_material_override/0 = SubResource("Mat_bank")
+
+[node name="Player" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 5)
+
+[node name="Camera3D" type="Camera3D" parent="Player"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, 0)
+fov = 75.0
+near = 0.05
+far = 200.0
+
+[node name="Rod" parent="Player/Camera3D" instance=ExtResource("2_rod")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.4, -0.3, -0.55)
+
+[node name="DebugUI" type="CanvasLayer" parent="."]
+
+[node name="Panel" type="PanelContainer" parent="DebugUI"]
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 360.0
+offset_bottom = 120.0
+
+[node name="DebugLabel" type="Label" parent="DebugUI/Panel"]
+text = "Cast state:    IDLE
+Cast power:    0.00
+Lure distance: 0.0 m
+Reel state:    IDLE"
+label_settings = SubResource("LabelSettings_debug")
+
+[node name="CastPowerBar" type="ProgressBar" parent="DebugUI"]
+visible = false
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -200.0
+offset_top = -64.0
+offset_right = 200.0
+offset_bottom = -32.0
+max_value = 1.0
+step = 0.01
+value = 0.0
+show_percentage = false

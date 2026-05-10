@@ -1,50 +1,36 @@
-# Fishing with Friends 🎣
+# Bass Fishing
 
-A cozy browser fishing game starring two best buddies — a blond little
-sibling with a net and an older curly-haired kid with a rod. Wade in a
-mountain stream or paddle out in a kayak and reel in trout, bass, and a
-rare golden fish.
+Stylized first-person arcade bass fishing game inspired by Sega Bass Fishing.
+Built in **Godot 4**.
 
-## Play locally
+## Status
 
-Just open `index.html` in any modern browser, or serve the folder:
+Vertical slice 1: cast → arc → splash → reel. No fish, no menus, no save —
+intentionally. Each subsequent prompt adds one playable feature.
 
-```sh
-python3 -m http.server 8000
-# then visit http://localhost:8000
+## Open the project
+
+1. Install Godot 4.3 or later (https://godotengine.org).
+2. Open Godot, click **Import**, select `project.godot` in this folder.
+3. Press **F5** to run. Main scene is `res://src/scenes/fishing/fishing.tscn`.
+
+## Controls (slice 1)
+
+| Input | Action |
+|---|---|
+| Mouse move | Aim camera |
+| Hold left mouse | Charge cast |
+| Release left mouse | Launch lure |
+| Right mouse | Cancel charge |
+| Left mouse (lure in water) | Hold to reel in |
+| `Esc` | Toggle mouse capture (for editor convenience) |
+
+## Project layout
+
+```
+src/scenes/fishing/   First-person fishing scene + child scenes (rod, lure)
+docs/validation/      One checklist per build prompt
+assets/               Reserved for art/audio (empty until needed)
 ```
 
-## Controls
-
-| Action            | Input                          |
-| ----------------- | ------------------------------ |
-| Cast / Hook fish  | Click, tap, or `Space`         |
-| Switch to Stream  | `1`                            |
-| Switch to Kayak   | `2`                            |
-
-When the bobber dips and a `!` appears over a fish, hit cast again
-quickly to set the hook. Snap too soon and they swim off; too late and
-they steal your bait.
-
-## Fish
-
-| Fish    | Points | Notes                         |
-| ------- | ------ | ----------------------------- |
-| Minnow  | 5      | Common                        |
-| Trout   | 15     | Pretty common                 |
-| Bass    | 30     | Worth chasing                 |
-| Goldie  | 50     | Rare — about 1 in 50          |
-
-## Tech
-
-Plain HTML / CSS / JS. All artwork — kids, kayak, fish, mountains — is
-drawn live with the Canvas 2D API, so the game has zero dependencies
-and ships as static files.
-
-## Deploy
-
-The repo includes a GitHub Pages workflow at
-`.github/workflows/pages.yml` that publishes the site whenever `main`
-updates. Enable it once in **Settings → Pages → Source: GitHub
-Actions**, and the game will be available at
-`https://<owner>.github.io/<repo>/`.
+See `docs/validation/prompt_02_casting.md` for the slice 1 acceptance test.

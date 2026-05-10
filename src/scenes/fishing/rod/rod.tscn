@@ -1,0 +1,27 @@
+[gd_scene load_steps=5 format=3 uid="uid://b00000000rod0"]
+
+[ext_resource type="Script" path="res://src/scenes/fishing/rod/rod.gd" id="1_rod"]
+[ext_resource type="PackedScene" uid="uid://b00000000lure" path="res://src/scenes/fishing/lure/lure.tscn" id="2_lure"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_rod"]
+size = Vector3(0.025, 0.025, 1.5)
+
+[sub_resource type="StandardMaterial3D" id="Mat_rod"]
+albedo_color = Color(0.18, 0.1, 0.06, 1)
+roughness = 0.65
+metallic = 0.05
+
+[node name="Rod" type="Node3D"]
+script = ExtResource("1_rod")
+lure_scene = ExtResource("2_lure")
+
+[node name="RodMesh" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.75)
+mesh = SubResource("BoxMesh_rod")
+surface_material_override/0 = SubResource("Mat_rod")
+
+[node name="LureSpawnPoint" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.5)
+
+[node name="Tip" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.5)

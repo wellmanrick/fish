@@ -1,0 +1,12 @@
+# Godot 4
+.godot/
+
+# Builds
+/builds/
+
+# Sensitive
+export_credentials.cfg
+
+# OS
+.DS_Store
+Thumbs.db
